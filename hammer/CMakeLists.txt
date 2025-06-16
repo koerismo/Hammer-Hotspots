@@ -13,6 +13,9 @@ add_executable(hamspot-launcher
 	src/faceedit.cpp
 )
 
+# Configure for P2CE Hammer
+add_compile_definitions(P2CE=1)
+
 # find_package(MinHook REQUIRED)
 # target_link_libraries(main PRIVATE MinHook::MinHook)
 
@@ -27,8 +30,8 @@ set_target_properties(hamspot PROPERTIES VERSION "${PROJECT_VERSION}")
 set_target_properties(hamspot-launcher PROPERTIES VERSION "${PROJECT_VERSION}")
 
 # Give outputs much cooler names
-set_target_properties(hamspot PROPERTIES OUTPUT_NAME "ham_dll")
-set_target_properties(hamspot-launcher PROPERTIES OUTPUT_NAME "HamSpotInjector")
+set_target_properties(hamspot PROPERTIES OUTPUT_NAME "hammer_dll")
+set_target_properties(hamspot-launcher PROPERTIES OUTPUT_NAME "HamLauncher")
 
 set(HAMSPOT_INCLUDES
 	"${CMAKE_CURRENT_SOURCE_DIR}/src/"

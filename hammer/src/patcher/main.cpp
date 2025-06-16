@@ -42,7 +42,7 @@ EXTERN_DLL_EXPORT void* CreateInterface(const char* pName, int* pReturnCode) {
         return NULL;
     }
 
-    f_CreateInterface interfaceOriginal = (f_CreateInterface)GetProcAddress(hMainModule, "CreateInterface");
+    f_CreateInterface interfaceOriginal = reinterpret_cast<f_CreateInterface>(GetProcAddress(hMainModule, "CreateInterface"));
     if (!interfaceOriginal) {
         printf("Could not locate CreateInterface in DLL!\n");
         *pReturnCode = -1;

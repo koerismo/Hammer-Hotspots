@@ -4,7 +4,7 @@
 
 HINSTANCE hMainModule;
 
-typedef int (__stdcall *f_hammerMain)();
+typedef void* (*f_CreateInterface)(const char* pName, int* pReturnCode);
 
 int main(int vargs, const char* args) {
     printf("Initializing...\n");
@@ -24,14 +24,16 @@ int main(int vargs, const char* args) {
     printf("Patched! Launching...\n");
 
     // Get DLL entrypoint function
-    auto hammerEntry = GetProcAddress(hMainModule, "entry");
-    if (!hammerEntry) {
+    auto f_createInterface = reinterpret_cast<f_CreateInterface>(GetProcAddress(hMainModule, "CreateInterface"));
+    if (!f_createInterface) {
         printf("Couldn't get hammer entrypoint function!\n");
         return 1;
     }
 
     // ACTION!!
-    hammerEntry();
+    int returnCode;
+    void* hammerInterface = f_createInterface("Hammer001", &returnCode);
+    // TODO: I have no clue what to do from here lmao
 
     return 0;
 }

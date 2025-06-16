@@ -9,10 +9,10 @@ uintptr_t FindModule() {
 }
 
 void* GetEntrypoint(uintptr_t modulePtr) {
-    #if WIN32
+    #if WIN32 && P2CE
     return reinterpret_cast<void*>(modulePtr + 0x18f860);
     #endif
-    return nullptr;
+    return NULL;
 }
 
 ReturnCode_t Patch() {

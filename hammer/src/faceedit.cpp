@@ -3,7 +3,7 @@
 #include "faceedit.h"
 
 // Set by module.h
-JustifyTextureFunc f_JustifyTextureOriginal = nullptr;
+JustifyTextureFunc f_JustifyTextureOriginal = NULL;
 
 void SetOriginalCallback(JustifyTextureFunc callback) {
     f_JustifyTextureOriginal = callback;
