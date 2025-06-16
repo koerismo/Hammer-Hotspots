@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdio.h>
+#include "print.h"
 
 struct Vector2 {
     float x, y;

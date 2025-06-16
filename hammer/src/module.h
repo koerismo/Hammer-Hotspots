@@ -1,9 +1,9 @@
 #pragma once
 
 #include <Windows.h>
-#include <stdio.h>
 #include "MinHook.h"
 #include "faceedit.h"
+#include "print.h"
 
 namespace Patcher {
 
