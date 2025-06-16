@@ -5,7 +5,7 @@
 // Usage:
 // 1. Rename hammer_dll to hammer_dll_original
 // 2. Rename this dll to hammer_dll and place in the same folder. KEEP THE ORIGINAL!
-// 3. Enjoy hotspotting!
+// 3. This plugin isn't finished yet come back later
 
 typedef void* (*f_CreateInterface)(const char* pName, int* pReturnCode);
 

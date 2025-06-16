@@ -4,10 +4,12 @@
 	"private": true,
 	"type": "module",
 	"main": "dist/index.js",
-	"bin": "dist/index.js",
+	"bin": {
+		"generate": "dist/index.js"
+	},
 	"scripts": {
 		"build": "tsc",
-		"test": "node dist/index.js"
+		"generate": "node dist/index.js"
 	},
 	"keywords": [],
 	"author": "",

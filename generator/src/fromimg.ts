@@ -7,7 +7,7 @@ interface ImageData {
 	data: Uint8Array;
 }
 
-async function openImage(path: string): Promise<ImageData> {
+export async function openImage(path: string): Promise<ImageData> {
 	const { data, info } = await sharp(path).ensureAlpha().raw({ depth: 'uchar' }).toBuffer({ resolveWithObject: true });
 	if (info.channels !== 4) throw Error(`got ${info.channels} channels!?`);
 	return {
@@ -42,7 +42,7 @@ function splitsFromImage(img: ImageData): Rect[] {
 	return Object.values(rects);
 }
 
-function rectFileFromImage(img: ImageData): RectHeader {
+export function rectFileFromImage(img: ImageData): RectHeader {
 	const rects = splitsFromImage(img);
 	return {
 		flags: 0,
@@ -50,10 +50,3 @@ function rectFileFromImage(img: ImageData): RectHeader {
 		rects,
 	}
 }
-
-(async () => {
-	console.log('TEST!!!');
-	const img = await openImage("C:\\Users\\Jadon\\Downloads\\New Project.png");
-	const splits = splitsFromImage(img);
-	console.log(splits);
-})();
