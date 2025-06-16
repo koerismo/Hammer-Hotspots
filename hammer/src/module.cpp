@@ -5,7 +5,7 @@
 namespace Patcher {
 
 uintptr_t FindModule() {
-    return (uintptr_t)GetModuleHandleA("hammer_dll.dll");
+    return (uintptr_t)GetModuleHandleA("hammer_dll_original.dll");
 }
 
 void* GetEntrypoint(uintptr_t modulePtr) {

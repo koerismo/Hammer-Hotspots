@@ -18,37 +18,36 @@ HMODULE hMainModule = NULL;
 
 bool WINAPI DllMain( HINSTANCE hModule, DWORD loadReason, LPVOID lpReserved ) {
     printf("DllMain called with arg %i\n", loadReason);
-
     
     if (loadReason == DLL_PROCESS_ATTACH) {
-        // hMainModule = LoadLibraryA("hammer_dll_original");
+        hMainModule = LoadLibraryA("hammer_dll_original");
 
         printf("!! Library attaching...\n");
         Patcher::Patch();
     }
 
     if (loadReason == DLL_PROCESS_DETACH) {
-        // if (hMainModule) FreeLibrary(hMainModule);
+        if (hMainModule) FreeLibrary(hMainModule);
 
         printf("!! Library detatching...\n");
         Patcher::Unpatch();
     }
 }
 
-// EXTERN_DLL_EXPORT void* CreateInterface(const char* pName, int* pReturnCode) {
-//     printf("CREATING INTERFACE %s\n", pName);
-//     if (!hMainModule) {
-//         printf("Attempted to call CreateInterface before DLL was loaded!\n");
-//         *pReturnCode = -1;
-//         return NULL;
-//     }
+EXTERN_DLL_EXPORT void* CreateInterface(const char* pName, int* pReturnCode) {
+    printf("CREATING INTERFACE %s\n", pName);
+    if (!hMainModule) {
+        printf("Attempted to call CreateInterface before DLL finished loading!\n");
+        *pReturnCode = -1;
+        return NULL;
+    }
 
-//     f_CreateInterface interfaceOriginal = (f_CreateInterface)GetProcAddress(hMainModule, "CreateInterface");
+    f_CreateInterface interfaceOriginal = (f_CreateInterface)GetProcAddress(hMainModule, "CreateInterface");
+    if (!interfaceOriginal) {
+        printf("Could not locate CreateInterface in DLL!\n");
+        *pReturnCode = -1;
+        return NULL;
+    }
 
-//     if (!interfaceOriginal) {
-//         printf("Could not locate CreateInterface in DLL!\n");
-//         *pReturnCode = -1;
-//         return NULL;
-//     }
-//     return interfaceOriginal(pName, pReturnCode);
-// }
+    return interfaceOriginal(pName, pReturnCode);
+}
