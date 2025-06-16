@@ -20,12 +20,12 @@ set(PASSTHRU 0)
 add_compile_definitions(P2CE=1)
 add_compile_definitions(PASSTHRU=${PASSTHRU})
 
-# find_package(MinHook REQUIRED)
-# target_link_libraries(main PRIVATE MinHook::MinHook)
+# Use P2:CE-like tier0 bindings
+set(TIER0_PATH "tier0-p2ce-x64")
 
 # set(MINHOOK_LIB "${CMAKE_CURRENT_SOURCE_DIR}/ext/minhook/lib/libMinHook.x86.lib")
 set(MINHOOK_LIB "${CMAKE_CURRENT_SOURCE_DIR}/ext/minhook/lib/libMinHook.x64.lib")
-set(TIER0_LIB "${CMAKE_CURRENT_SOURCE_DIR}/ext/tier0/lib/tier0.lib")
+set(TIER0_LIB "${CMAKE_CURRENT_SOURCE_DIR}/ext/${TIER0_PATH}/lib/tier0.lib")
 
 target_link_libraries(hamspot ${MINHOOK_LIB} ${TIER0_LIB})
 target_link_libraries(hamspot-launcher ${MINHOOK_LIB} ${TIER0_LIB})
@@ -47,7 +47,7 @@ set_target_properties(hamspot-launcher PROPERTIES OUTPUT_NAME "HamLauncher")
 set(HAMSPOT_INCLUDES
 	"${CMAKE_CURRENT_SOURCE_DIR}/src/"
 	"${CMAKE_CURRENT_SOURCE_DIR}/ext/minhook/include/"
-	"${CMAKE_CURRENT_SOURCE_DIR}/ext/tier0/include/"
+	"${CMAKE_CURRENT_SOURCE_DIR}/ext/${TIER0_PATH}/include/"
 )
 
 target_include_directories(hamspot PRIVATE ${HAMSPOT_INCLUDES})

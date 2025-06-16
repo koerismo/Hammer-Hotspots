@@ -16,7 +16,7 @@ enum class ReturnCode_t {
 };
 
 /// Get the JustifyTexture entrypoint with the specified module pointer
-void* GetEntrypoint(uintptr_t modulePtr);
+bool GetEntrypoints(uintptr_t modulePtr, JustifyTextureFunc* out_justifyPtr, CalcTextureCoordsFunc* out_calcCoordsPtr);
 
 /// Patches the justify tool
 ReturnCode_t Patch();

@@ -1,5 +1,3 @@
-#pragma once
-
 #include "module.h"
 
 #if PASSTHRU
@@ -8,17 +6,26 @@
 #define ORIG_DLL_NAME "hammer_dll.dll"
 #endif
 
+#if WIN32 && P2CE
+#define PTR_JUSTIFY_TEXTURE     0x018f860
+#define PTR_CALC_COORDS         0x018d1e0
+#else
+#error Unsupported platform!
+#endif
+
 namespace Patcher {
 
 uintptr_t FindModule() {
     return (uintptr_t)GetModuleHandleA(ORIG_DLL_NAME);
 }
 
-void* GetEntrypoint(uintptr_t modulePtr) {
-    #if WIN32 && P2CE
-    return reinterpret_cast<void*>(modulePtr + 0x18f860);
+bool GetEntrypoints(uintptr_t modulePtr, JustifyTextureFunc* out_justifyPtr, CalcTextureCoordsFunc* out_calcCoordsPtr) {
+    #if PTR_JUSTIFY_TEXTURE
+    *out_justifyPtr    = reinterpret_cast<JustifyTextureFunc>(modulePtr + PTR_JUSTIFY_TEXTURE);
+    *out_calcCoordsPtr = reinterpret_cast<CalcTextureCoordsFunc>(modulePtr + PTR_CALC_COORDS);
+    return true;
     #endif
-    return NULL;
+    return false;
 }
 
 ReturnCode_t Patch() {
@@ -38,24 +45,33 @@ ReturnCode_t Patch() {
         return ReturnCode_t::DllGetFail;
     }
 
-    // From there, we can find the address of the texture justify function
-    auto pEntrypoint = static_cast<JustifyTextureFunc>(GetEntrypoint(pModule));
-    if (!pEntrypoint) {
-        DebugPrintF("Patch entrypoint is not known for your platform!\n");
+    // TODO: Make this code modular so we don't have to
+    // go through this whole dance for every entrypoint
+
+    // Use the main module pointer to find the offsets to our entrypoints
+    JustifyTextureFunc f_targetJustifyTexture;
+    CalcTextureCoordsFunc f_CalcCoords;
+    
+    if (!GetEntrypoints(pModule, &f_targetJustifyTexture, &f_CalcCoords)) {
+        DebugPrintF("Patch entrypoints are not known for your platform!\n");
         return ReturnCode_t::GetEntryFail;
     }
 
-    JustifyTextureFunc f_originalCallback;
+    // Used to track the original entrypoint
+    JustifyTextureFunc f_ogJustifyTexture;
 
-    MH_STATUS hookStatus = MH_CreateHook(pEntrypoint, JustifyTexturePatched, reinterpret_cast<LPVOID*>(&f_originalCallback));
+    MH_STATUS hookStatus;
+    hookStatus = MH_CreateHook(f_targetJustifyTexture, JustifyTexturePatched, reinterpret_cast<LPVOID*>(&f_ogJustifyTexture));
     if (hookStatus != MH_STATUS::MH_OK) {
         DebugPrintF("Failed to hook function. The pointer is probably incorrect! Error code: %i\n", hookStatus);
         return ReturnCode_t::HookFail;
     }
 
-    SetOriginalCallback(f_originalCallback);
+    // Hand entrypoints off to faceedit module
+    SetOriginalCallbacks(f_ogJustifyTexture, f_CalcCoords);
 
-    if (MH_EnableHook(pEntrypoint) != MH_STATUS::MH_OK) {
+    // Enable JustifyTexture hook
+    if (MH_EnableHook(f_targetJustifyTexture) != MH_STATUS::MH_OK) {
         DebugPrintF("Failed to enable hook!\n");
         return ReturnCode_t::HookFail;
     }
@@ -66,6 +82,7 @@ ReturnCode_t Patch() {
 ReturnCode_t Unpatch() {
     DebugPrintF("Disabling hooks...\n");
 
+    // Disable all hooks
     if (MH_DisableHook(MH_ALL_HOOKS) != MH_STATUS::MH_OK) {
         return ReturnCode_t::HookFail;
     }

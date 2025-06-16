@@ -8,7 +8,7 @@
 using Patcher::ReturnCode_t;
 
 bool WINAPI DllMain( HINSTANCE hModule, DWORD loadReason, LPVOID lpReserved ) {
-    DebugPrintF("DllMain called with arg %i\n", loadReason);
+    // DebugPrintF("DllMain called with arg %i\n", loadReason);
 
     if (loadReason == DLL_PROCESS_ATTACH) {
         DebugPrintF("Library attaching...\n");
