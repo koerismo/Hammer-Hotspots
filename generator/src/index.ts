@@ -48,9 +48,9 @@ async function main(args: string[]) {
 	const img = await openImage(fp);
 	const data = rectFileFromImage(img);
 	const encoded = encode(data);
-	writeFile(fp.replace(/\..+?$/, '.rect'), new Uint8Array(encoded));
+	await writeFile(fp.replace(/\..+?$/, '.rect'), new Uint8Array(encoded));
 
-	console.log('Converted rectmap image successfully!');
+	console.log(`Converted ${data.texSize.x}x${data.texSize.y} colormap image successfully with ${data.rects.length} rects!`);
 	exit(0);
 }
 
