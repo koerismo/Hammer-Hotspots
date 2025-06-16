@@ -1,0 +1,4 @@
+﻿build/
+node_modules/
+generator/dist/
+.vscode/settings.json

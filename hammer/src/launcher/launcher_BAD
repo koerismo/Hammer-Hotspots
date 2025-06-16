@@ -1,0 +1,67 @@
+#include <stdio.h>
+#include <Windows.h>
+#include <tlhelp32.h>
+#include <Shlwapi.h>
+
+HANDLE OpenProgramHandle() {
+    PROCESSENTRY32 entry;
+    entry.dwSize = sizeof(PROCESSENTRY32);
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+
+    if (Process32First(snapshot, &entry)) {
+        while (Process32Next(snapshot, &entry)) {
+            if (_stricmp(entry.szExeFile, "hammer.exe") == 0) {  
+                HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, entry.th32ProcessID);
+                return hProcess;
+            }
+        }
+    }
+
+    CloseHandle(snapshot);
+    return 0;
+}
+
+int main(int argc, const char** args) {
+    printf("Initializing...\n");
+
+    // Gain program handle
+    HANDLE appHandle = OpenProgramHandle();
+    if (!appHandle) {
+        printf("Failed to attach to hammer.exe!");
+        return 1;
+    }
+    if (appHandle == INVALID_HANDLE_VALUE) {
+        printf("Invalid handle!");
+        return 1;
+    }
+
+    // Inject provided DLLs
+    for (int i = 0; i < argc; i++) {
+        const char* dllPath = args[i];
+        if (!PathFileExists(dllPath)) {
+            printf("Skipping path %s (does not exist)\n", dllPath);
+            continue;
+        }
+        void* addr = VirtualAllocEx(appHandle, 0, MAX_PATH, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        bool written = WriteProcessMemory(appHandle, addr, dllPath, strlen(dllPath)+1, 0);
+        if (!written) {
+            printf("Failed to write process memory!\n");
+            CloseHandle(appHandle);
+            return 1;
+        }
+        HANDLE threadHandle = CreateRemoteThread(appHandle, 0, 0, (LPTHREAD_START_ROUTINE)LoadLibraryA, addr, 0, 0);
+        VirtualFree(addr, strlen(dllPath)+1, MEM_RELEASE);
+        if (!threadHandle) {
+            printf("Failed to launch thread!\n");
+            CloseHandle(appHandle);
+            return 1;
+        }
+        CloseHandle(threadHandle);
+    }
+
+    // Close app handle
+    CloseHandle(appHandle);
+
+    return 0;
+}
+

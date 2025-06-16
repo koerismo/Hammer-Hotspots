@@ -1,0 +1,24 @@
+{
+	"name": "rect-generator",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"main": "dist/index.js",
+	"bin": "dist/index.js",
+	"scripts": {
+		"build": "tsc",
+		"test": "node dist/index.js"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"packageManager": "pnpm@10.12.1",
+	"dependencies": {
+		"sharp": "^0.34.2",
+		"stupid-buffer": "^1.0.3"
+	},
+	"devDependencies": {
+		"@types/node": "^24.0.1",
+		"typescript": "^5.8.3"
+	}
+}
