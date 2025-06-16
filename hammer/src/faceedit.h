@@ -32,15 +32,15 @@ typedef unsigned short uint16;
 typedef unsigned int uint32;
 
 struct Texture {
-    char path[260];
-    Vector4 axisU;
-    Vector4 axisV;
-    float rotation;
-    float scaleX;
-    float scaleY;
-    uint8 __unknown1;
-    uint8 __unknown2;
-    int lightmapScale;
+    char        path[260];
+    Vector4     axisU;
+    Vector4     axisV;
+    float       rotation;
+    float       scaleX;
+    float       scaleY;
+    uint8       __unknown1;
+    uint8       __unknown2;
+    int         lightmapScale;
 };
 
 struct Face {
@@ -70,7 +70,7 @@ struct Face {
     uint32      smoothGroups;
 };
 
-/// @brief `(void* pFace, TextureJustify_t justifyMode, Extents_t extents)`
+/// `(void* pFace, TextureJustify_t justifyMode, Extents_t extents)`
 typedef int (*JustifyTextureFunc)(void*, TextureJustify_t, Extents_t);
 
 // Set by module.h

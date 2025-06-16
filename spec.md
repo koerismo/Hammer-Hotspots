@@ -1,5 +1,7 @@
 # HotSpot File Spec
 
+This specification defines a simple format for storing HotSpot texture targets.
+
 ### Structure
 
 ```
