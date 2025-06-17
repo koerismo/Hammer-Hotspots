@@ -6,11 +6,14 @@
 #define ORIG_DLL_NAME "hammer_dll.dll"
 #endif
 
-#if WIN32 && P2CE
-#define PTR_JUSTIFY_TEXTURE     0x018f860
+#if WIN32 && GAME_P2CE
 #define PTR_CALC_COORDS         0x018d1e0
+#define PTR_JUSTIFY_TEXTURE     0x018f860
+#elif WIN32 && GAME_P2
+#define PTR_CALC_COORDS         0x012a4e0
+#define PTR_JUSTIFY_TEXTURE     0x012bbc0
 #else
-#error Unsupported platform!
+#error Unsupported game/platform!
 #endif
 
 namespace Patcher {

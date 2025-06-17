@@ -13,19 +13,34 @@ add_executable(hamspot-launcher
 	src/faceedit.cpp
 )
 
+# REMOVE ME!!!!
+set(IS_X86 1)
+set(IS_P2 1)
+
 # Set this when using this as a hammer_dll passthrough
 set(PASSTHRU 0)
 
 # Configure for P2CE Hammer
-add_compile_definitions(P2CE=1)
 add_compile_definitions(PASSTHRU=${PASSTHRU})
 
-# Use P2:CE-like tier0 bindings
+if (IS_P2CE)
+add_compile_definitions(GAME_P2CE=1)
 set(TIER0_PATH "tier0-p2ce-x64")
+elseif(IS_P2)
+add_compile_definitions(GAME_P2=1)
+set(TIER0_PATH "tier0-p2-x86")
+else()
+message(FATAL_ERROR "No game target selected! Use the provided CMake presets!")
+endif()
 
-# set(MINHOOK_LIB "${CMAKE_CURRENT_SOURCE_DIR}/ext/minhook/lib/libMinHook.x86.lib")
-set(MINHOOK_LIB "${CMAKE_CURRENT_SOURCE_DIR}/ext/minhook/lib/libMinHook.x64.lib")
 set(TIER0_LIB "${CMAKE_CURRENT_SOURCE_DIR}/ext/${TIER0_PATH}/lib/tier0.lib")
+if (IS_X86)
+set(DLL_POSTFIX ".x86")
+set(MINHOOK_LIB "${CMAKE_CURRENT_SOURCE_DIR}/ext/minhook/lib/libMinHook.x86.lib")
+else()
+set(DLL_POSTFIX ".x64")
+set(MINHOOK_LIB "${CMAKE_CURRENT_SOURCE_DIR}/ext/minhook/lib/libMinHook.x64.lib")
+endif()
 
 target_link_libraries(hamspot ${MINHOOK_LIB} ${TIER0_LIB})
 target_link_libraries(hamspot-launcher ${MINHOOK_LIB} ${TIER0_LIB})
@@ -41,8 +56,8 @@ else()
 endif()
 
 # Give outputs much cooler names
-set_target_properties(hamspot PROPERTIES OUTPUT_NAME ${DLL_NAME})
-set_target_properties(hamspot-launcher PROPERTIES OUTPUT_NAME "HamLauncher")
+set_target_properties(hamspot PROPERTIES OUTPUT_NAME "${DLL_NAME}${DLL_POSTFIX}")
+set_target_properties(hamspot-launcher PROPERTIES OUTPUT_NAME "HamLauncher${DLL_POSTFIX}")
 
 set(HAMSPOT_INCLUDES
 	"${CMAKE_CURRENT_SOURCE_DIR}/src/"

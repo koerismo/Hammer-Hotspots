@@ -18,6 +18,7 @@ struct Vector4 {
     float x, y, z, w;
 };
 
+// sizeof(Texture_t) = 312
 struct Texture_t {
     char        path[260];
     Vector4     axisU;
@@ -30,37 +31,6 @@ struct Texture_t {
     int         lightmapScale;
 };
 
-struct Face_t {
-    // 96 bytes of mystery padding
-    // RE is my passion
-    uint8       __unknown0[96];
-
-    Texture_t     texture;
-    Vector*     verts;
-    int         vertCount;
-    
-    // Plane
-    Vector      planeNormal;
-    float       __unknown1;
-    Vector      planePoints;
-
-    int         flags;
-    void*       __unknown2;
-    uint8       __unknown3;
-
-    int         faceId;
-    void*       editorTexture;
-    uint16      dispHandle;
-    Vector2     textureCoords;
-    Vector2     lightmapCoords;
-
-    bool        isCordonFace : 1;
-    bool        ignoreLighting : 1;
-
-    void*       tangents;
-    uint32      smoothGroups;
-};
-
 // Referenced from Alien Swarm SDK
 class Material_t {
     virtual const char* GetName() const = 0;
@@ -70,12 +40,14 @@ class Material_t {
 
 // Referenced from Kisak-Strike
 class EditorTexture_t {
+public:
+    virtual ~EditorTexture_t(void) {}
     virtual int GetPreviewImageWidth() const = 0;
     virtual int GetPreviewImageHeight() const = 0;
     virtual int GetWidth() const = 0;
     virtual int GetHeight() const = 0;
     virtual int GetMappingWidth() const = 0;
-    virtual int GetMappingHeight() const = 0;
+    virtual int GetMappingHeight() const = 0; // Verified in P2!
     virtual float GetDecalScale() const = 0;
 
     virtual const char* GetName() const = 0;
@@ -103,4 +75,42 @@ class EditorTexture_t {
     virtual int GetTextureID() const = 0;
     virtual void SetTextureID(int texId) = 0;
     virtual Material_t* GetMaterial(bool forceLoad=true) = 0;
+};
+
+struct Face_t {
+    #if GAME_P2CE
+    // P2CE: 96 bytes of mystery padding, RE is my passion
+    uint8       __unknown0[96];             // 96 - 0x00
+    #else
+    // P2: Only 20 bytes of mystery padding! Wowza!
+    uint8       __unknown0[20];             // 20 - 0x00
+    #endif
+
+    Texture_t   texture;                    // 312
+    Vector*     verts;                      // 8*
+    int         vertCount;                  // 4
+    
+    // Plane
+    Vector      planeNormal;                // 12
+    float       planeDist;                  // 4
+    Vector      planePoints[3];             // 36
+
+    int         flags;                      // 4
+    uint8       __unknown3;                 // 1
+    void*       __unknown2;                 // 8*
+
+    uint8       __mysteryPaddingTheSequel[11];  // 1 (this is to make editorTexture correct)
+
+    int                 faceId;             // 4
+    EditorTexture_t*    editorTexture;      // 8 - 0x1A0 (+416) in Portal 2
+    uint16              dispHandle;         // 2
+    Vector2             *textureCoords;     // 8*
+    Vector2             *lightmapCoords;    // 8*
+    
+
+    bool        isCordonFace : 1;
+    bool        ignoreLighting : 1;
+
+    void*       tangents;
+    uint32      smoothGroups;
 };
