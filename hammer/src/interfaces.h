@@ -89,6 +89,9 @@ struct Face_t {
     Texture_t   texture;                    // 312
     Vector*     verts;                      // 8*
     int         vertCount;                  // 4
+
+    // TODO: 8 bytes here need to GO
+    float       __mysteryBytesAgain[2];     // 8
     
     // Plane
     Vector      planeNormal;                // 12
@@ -99,7 +102,9 @@ struct Face_t {
     uint8       __unknown3;                 // 1
     void*       __unknown2;                 // 8*
 
+    #if GAME_P2
     uint8       __mysteryPaddingTheSequel[11];  // 1 (this is to make editorTexture correct)
+    #endif
 
     int                 faceId;             // 4
     EditorTexture_t*    editorTexture;      // 8 - 0x1A0 (+416) in Portal 2

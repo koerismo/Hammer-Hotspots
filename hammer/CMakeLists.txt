@@ -4,6 +4,7 @@ project(hamspot VERSION 1.0.0)
 add_library(hamspot SHARED
 	src/patcher/main.cpp
 	src/module.cpp
+	src/hotspot.cpp
 	src/faceedit.cpp
 )
 
@@ -14,8 +15,10 @@ add_executable(hamspot-launcher
 )
 
 # REMOVE ME!!!!
-set(IS_X86 1)
-set(IS_P2 1)
+# set(IS_X86 1)
+# set(IS_P2 1)
+set(IS_X86 0)
+set(IS_P2CE 1)
 
 # Set this when using this as a hammer_dll passthrough
 set(PASSTHRU 0)
@@ -35,10 +38,10 @@ endif()
 
 set(TIER0_LIB "${CMAKE_CURRENT_SOURCE_DIR}/ext/${TIER0_PATH}/lib/tier0.lib")
 if (IS_X86)
-set(DLL_POSTFIX ".x86")
+set(DLL_POSTFIX "_x86")
 set(MINHOOK_LIB "${CMAKE_CURRENT_SOURCE_DIR}/ext/minhook/lib/libMinHook.x86.lib")
 else()
-set(DLL_POSTFIX ".x64")
+set(DLL_POSTFIX "_x64")
 set(MINHOOK_LIB "${CMAKE_CURRENT_SOURCE_DIR}/ext/minhook/lib/libMinHook.x64.lib")
 endif()
 
