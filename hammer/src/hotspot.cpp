@@ -8,14 +8,17 @@ namespace HotSpot {
 
 /// If any additional rects are within this threshold,
 /// they should be used to randomize the result.
-const float aspectErrorMargin = 0.01;
+const float aspectErrorMargin = 0.01f;
 
+Rect CreateRect(Vec2i mins, Vec2i maxs, uint16_t flags) {
+    return { flags, mins, maxs };
+}
 
 RectHeader* ParseRectFile(void* data) {
     return NULL;
 }
 
-int MatchRandomBestRect(RectHeader* file, float targetAspect, float* resultDiff=NULL) {
+int MatchRandomBestRect(RectHeader* file, float targetAspect, float* resultDiff) {
     if (!file || !file->rects.size()) return -1;
 
     std::vector<float> distances(file->rects.size());
@@ -44,15 +47,17 @@ int MatchRandomBestRect(RectHeader* file, float targetAspect, float* resultDiff=
     if (matches.size() == 0) return -1;
 
     // Return random matching index
-    int result = std::rand() % matches.size();
+    int result = matches[std::rand() % matches.size()];
     if (resultDiff != NULL) *resultDiff = distances[result];
     return result;
 }
 
-void GetInvScaleFactor(RectHeader* header, int i, float* out_x, float* out_y) {
+void GetOffsetAndInvScale(RectHeader* header, int i, Vector2* vOffset, Vector2* vInvScale) {
     Rect* rect = &header->rects[i];
-    *out_x = (rect->maxs.x - rect->mins.x) / header->texSize.x;
-    *out_y = (rect->maxs.y - rect->mins.y) / header->texSize.y;
+    vOffset->x =  static_cast<float>(rect->mins.x) / static_cast<float>(header->texSize.x);
+    vOffset->y =  static_cast<float>(rect->mins.y) / static_cast<float>(header->texSize.y);
+    vInvScale->x = static_cast<float>(header->texSize.x) / static_cast<float>(rect->maxs.x - rect->mins.x);
+    vInvScale->y = static_cast<float>(header->texSize.y) / static_cast<float>(rect->maxs.y - rect->mins.y);
     return;
 }
 

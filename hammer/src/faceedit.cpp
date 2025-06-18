@@ -10,12 +10,12 @@
 JustifyTextureFunc f_JustifyTextureOriginal = NULL;
 CalcTextureCoordsFunc f_CalcTextureCoords = NULL;
 
+/// This is a helper function just so we can prototype before having the Face struct 100% compliant
 EditorTexture_t* GetFaceEditorTexture(Face_t* pFace) {
-    // TODO: This is stupid
     #if GAME_P2CE
-    return *(reinterpret_cast<EditorTexture_t**>(pFace + 0x1A0));
+    return *(EditorTexture_t**)((uint8*)pFace + 0x200);
     #else
-    return *(reinterpret_cast<EditorTexture_t**>(pFace + 0x1A0));
+    return *(EditorTexture_t**)((uint8*)pFace + 0x1A0);
     #endif
 }
 
@@ -24,63 +24,131 @@ void SetOriginalCallbacks(JustifyTextureFunc cb_justifyTexture, CalcTextureCoord
     f_CalcTextureCoords = cb_calcCoords;
 }
 
+Vector Sub(Vector a, Vector b) { return { a.x+b.x, a.y+b.y, a.z+b.z }; }
+Vector2 Sub(Vector2 a, Vector2 b) { return { a.x+b.x, a.y+b.y }; }
+
+float Dot(Vector a, Vector b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+float Dot(Vector2 a, Vector2 b) { return a.x * b.x + a.y * b.y; }
+
+void GetTextureBounds(Texture_t &texture, Extents_t extents, Vector2 &mins, Vector2 &maxs) {
+    bool zero = true;
+    for (int i=0; i<6; i++) {
+        float x = Dot(extents[i], *reinterpret_cast<Vector*>(&texture.axisU)) / texture.scaleX;
+        float y = Dot(extents[i], *reinterpret_cast<Vector*>(&texture.axisV)) / texture.scaleY;
+        if (x < mins.x || zero) { mins.x = x; }
+        if (y < mins.y || zero) { mins.y = y; }
+        if (x > maxs.x || zero) { maxs.x = x; }
+        if (y > maxs.y || zero) { maxs.y = y; }
+        zero = false;
+    }
+}
+
+void FitTextureToRect(Face_t* pFace, Extents_t extents, const Vector2 &uvMins, const Vector2 &uvInvScale) {
+    pFace->texture.scaleX = 1.0;
+    pFace->texture.scaleY = 1.0;
+
+    Vector2 mins, maxs;
+    GetTextureBounds(pFace->texture, extents, mins, maxs);
+
+    EditorTexture_t* pTex = GetFaceEditorTexture(pFace);
+    if (pTex && pTex->textureMappingWidth && pTex->textureMappingHeight) {
+        pFace->texture.scaleX = (maxs.x - mins.x) / pTex->textureMappingWidth * uvInvScale.x;
+        pFace->texture.scaleY = (maxs.y - mins.y) / pTex->textureMappingHeight * uvInvScale.y;
+    }
+    else {
+        DebugPrintF("Editor texture is nullptr!?\n");
+        pFace->texture.scaleX = 0.25; // (maxs.x - mins.x) / 512.0f;
+        pFace->texture.scaleY = 0.25; // (maxs.y - mins.y) / 512.0f;
+    }
+
+    // Recalculate bounds after scaling
+    GetTextureBounds(pFace->texture, extents, mins, maxs);
+
+    // Align to top-left of UV rect
+    pFace->texture.axisU.w = -mins.x;
+    pFace->texture.axisV.w = -mins.y;
+    // pFace->texture.axisU.w = -(mins.x * (1.0f - uvMins.x) + maxs.x * uvMins.x);
+    // pFace->texture.axisV.w = -(mins.y * (1.0f - uvMins.y) + maxs.y * uvMins.y);
+    // pFace->texture.axisU.w = -mins.x - pTex->textureMappingWidth * uvMins.x;
+    // pFace->texture.axisV.w = -mins.y - pTex->textureMappingHeight * uvMins.y;
+}
+
 // masm syntax debug:
 // bp hamspot_x64!JustifyTexturePatched
 
 // Called by module.h
 void JustifyTexturePatched(Face_t* pFace, TextureJustify_t justifyMode, Extents_t extents) {
-    DebugPrintF("Call hijacked! ptr=%i mode=%i\n", static_cast<void*>(pFace), justifyMode);
+    if (!pFace) return;
 
     if (justifyMode != TextureJustify_t::JustifyFit) {
         return f_JustifyTextureOriginal(pFace, justifyMode, extents);
     }
 
-    DebugPrintF("JustifyTexture called! texture=\"%s\" bounds=[\n", pFace->texture.path, justifyMode);
-    for (int i = 0; i < 6; i ++) {
-        auto ex = extents[i];
-        DebugPrintF("  %2.f %2.f %2.f\n", ex.x, ex.y, ex.z);
-    }
-    DebugPrintF("]\n");
+    DebugPrintF("JustifyTexture called! texture=\"%s\"\n", pFace->texture.path, justifyMode);
+    // DebugPrintF("bounds=[\n");
+    // for (int i = 0; i < 6; i ++) {
+    //     auto ex = extents[i];
+    //     DebugPrintF("  %.1f %.1f %.1f\n", ex.x, ex.y, ex.z);
+    // }
+    // DebugPrintF("]\n");
 
     // TODO: Figure out actually correct offset for editor texture pointer
-    // EditorTexture_t* eTex = GetFaceEditorTexture(pFace);
-    // if (eTex) {
-    //     DebugPrintF("TEX INFO: %ix%i %s\n", eTex->GetWidth(), eTex->GetHeight(), eTex->GetName());
-    // }
+    EditorTexture_t* eTex = GetFaceEditorTexture(pFace);
+    if (!eTex) {
+        DebugPrintF("Texture info is nullptr! This will disable scaling math.\n");
+    }
+
     // else {
-    //     DebugPrintF("No texinfo :(\n");
+    //     DebugPrintF("Texture pointer is 0x%x\n", eTex);
+    //     DebugPrintF("Texture dimensions: %ix%i\n", eTex->textureMappingWidth, eTex->textureMappingHeight);
     // }
 
-    // Fit full texture
-    f_JustifyTextureOriginal(pFace, TextureJustify_t::JustifyFit, extents);
-    float topLeftX = pFace->texture.axisU.w;
-    float topLeftY = pFace->texture.axisV.w;
-    float texScaleX = pFace->texture.scaleX;
-    float texScaleY = pFace->texture.scaleY;
-    float aspect = texScaleX / texScaleY;
-
+    // TODO: Load and cache the rectheader from the selected material!
     auto tempFile = new HotSpot::RectHeader;
-    tempFile->rects.resize(1);
-    HotSpot::Rect* tempRect = &tempFile->rects[0];
-    tempRect->mins = { 0, 0 };
-    tempRect->maxs = { 0, 0 };
+    tempFile->texSize = { 512, 512 };
+    tempFile->rects.reserve(7);
+    tempFile->rects.push_back(HotSpot::CreateRect({ 0, 0 }, { 256, 256 }));
+    tempFile->rects.push_back(HotSpot::CreateRect({ 256, 0 }, { 384, 256 }));
+    tempFile->rects.push_back(HotSpot::CreateRect({ 384, 0 }, { 448, 256 }));
+    tempFile->rects.push_back(HotSpot::CreateRect({ 480, 0 }, { 496, 256 }));
+    tempFile->rects.push_back(HotSpot::CreateRect({ 496, 0 }, { 512, 256 }));
+    tempFile->rects.push_back(HotSpot::CreateRect({ 0, 256 }, { 512, 512 }));
 
-    // int rectIndex = 0;
-    float rectDiffA, rectDiffB;
-    int rectIndex     = HotSpot::MatchRandomBestRect(tempFile, aspect, &rectDiffA);
-    int rectIndexVert = HotSpot::MatchRandomBestRect(tempFile, 1/aspect, &rectDiffB);
-    if (rectDiffB < rectDiffA) rectIndex = rectIndexVert;
+    // Reset scaling so that GetTextureBounds works
+    pFace->texture.scaleX = 1.0;
+    pFace->texture.scaleY = 1.0;
     
-    float iScaleX, iScaleY;
-    HotSpot::GetInvScaleFactor(tempFile, rectIndex, &iScaleX, &iScaleY);
+    // Get aspect ratio of surface
+    Vector2 surfMins, surfMaxs;
+    GetTextureBounds(pFace->texture, extents, surfMins, surfMaxs);
+    float aspect = (surfMaxs.x - surfMins.x) / (surfMaxs.y - surfMins.y);
+    
+    DebugPrintF("Using aspect ratio of %2.2f\n", aspect);
 
-    DebugPrintF("Top corner: %4.f %4.f\nScale: %4.f %4.f\n", topLeftX, topLeftY, texScaleX, texScaleY);
-    pFace->texture.scaleX *= iScaleX;
-    pFace->texture.scaleY *= iScaleY;
+    // int rectIndex = 1;
+
+    // bool rot90 = false;
+    // float rectDiffA, rectDiffB;
+    // int rectIndex     = HotSpot::MatchRandomBestRect(tempFile, aspect, &rectDiffA);
+    // int rectIndexVert = HotSpot::MatchRandomBestRect(tempFile, 1/aspect, &rectDiffB);
+    // if (rectDiffB < rectDiffA) rectIndex = rectIndexVert, rot90 = true;
+
+    float rectDiff = -1;
+    int rectIndex = HotSpot::MatchRandomBestRect(tempFile, aspect, &rectDiff);
+
+    DebugPrintF("Chose rectangle %i with a diff of %.2f\n", rectIndex, rectDiff);
+
+    if (rectIndex == -1) {
+        // Cancel everything if we can't match a rect. This means something has gone wrong.
+        return f_JustifyTextureOriginal(pFace, justifyMode, extents);
+    }
+
+    Vector2 uvMins, uvInvScale;
+    HotSpot::GetOffsetAndInvScale(tempFile, rectIndex, &uvMins, &uvInvScale);
+
+    // Do texture fit
+    FitTextureToRect(pFace, extents, uvMins, uvInvScale);
 
     // Recalculate coords
-    // f_CalcTextureCoords(pFace);
-
-    // ...
-    // f_JustifyTextureOriginal(pFace, justifyMode, extents);
+    f_CalcTextureCoords(pFace);
 }

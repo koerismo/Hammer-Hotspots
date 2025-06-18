@@ -39,42 +39,54 @@ class Material_t {
 };
 
 // Referenced from Kisak-Strike
-class EditorTexture_t {
-public:
-    virtual ~EditorTexture_t(void) {}
-    virtual int GetPreviewImageWidth() const = 0;
-    virtual int GetPreviewImageHeight() const = 0;
-    virtual int GetWidth() const = 0;
-    virtual int GetHeight() const = 0;
-    virtual int GetMappingWidth() const = 0;
-    virtual int GetMappingHeight() const = 0; // Verified in P2!
-    virtual float GetDecalScale() const = 0;
+// class EditorTexture_t {
+// public:
+//     virtual ~EditorTexture_t(void) {}
+//     virtual int GetPreviewImageWidth() const = 0;
+//     virtual int GetPreviewImageHeight() const = 0;
+//     virtual int GetWidth() const = 0;
+//     virtual int GetHeight() const = 0;
+//     virtual int GetMappingWidth() const = 0;
+//     virtual int GetMappingHeight() const = 0; // Verified in P2!
+//     virtual float GetDecalScale() const = 0;
 
-    virtual const char* GetName() const = 0;
-    virtual int GetShortName( char* szShortName ) const = 0;
-    virtual int GetKeywords( char* szKeywords ) const = 0;
-    virtual void Draw(void* thisHasALotOfArgsAndIAmNeverGoingToUseIt) const = 0;
-    virtual int GetTextureFormat() const = 0;
-    virtual int GetSurfaceAttributes() const = 0;
-    virtual int GetSurfaceContents() const = 0;
-    virtual int GetSurfaceValue() const = 0;
-    virtual void* GetPalette() const = 0;
-    virtual bool HasData() const = 0;
-    virtual bool HasPalette() const = 0;
-    virtual bool Load() const = 0;
-    virtual void Reload() const = 0;
-    virtual bool IsLoaded() const = 0;
-    virtual const char* GetFileName() const = 0;
-    virtual bool IsWater() const = 0;
+//     virtual const char* GetName() const = 0;
+//     virtual int GetShortName( char* szShortName ) const = 0;
+//     virtual int GetKeywords( char* szKeywords ) const = 0;
+//     virtual void Draw(void* thisHasALotOfArgsAndIAmNeverGoingToUseIt) const = 0;
+//     virtual int GetTextureFormat() const = 0;
+//     virtual int GetSurfaceAttributes() const = 0;
+//     virtual int GetSurfaceContents() const = 0;
+//     virtual int GetSurfaceValue() const = 0;
+//     virtual void* GetPalette() const = 0;
+//     virtual bool HasData() const = 0;
+//     virtual bool HasPalette() const = 0;
+//     virtual bool Load() const = 0;
+//     virtual void Reload() const = 0;
+//     virtual bool IsLoaded() const = 0;
+//     virtual const char* GetFileName() const = 0;
+//     virtual bool IsWater() const = 0;
 
-    virtual int GetImageDataRGB(void* pData = NULL) = 0;
-    virtual int GetImageDataRGBA(void* pData = NULL) = 0;
+//     virtual int GetImageDataRGB(void* pData = NULL) = 0;
+//     virtual int GetImageDataRGBA(void* pData = NULL) = 0;
 
-    virtual bool HasAlpha() const = 0;
-    virtual bool IsDummy() const = 0;
-    virtual int GetTextureID() const = 0;
-    virtual void SetTextureID(int texId) = 0;
-    virtual Material_t* GetMaterial(bool forceLoad=true) = 0;
+//     virtual bool HasAlpha() const = 0;
+//     virtual bool IsDummy() const = 0;
+//     virtual int GetTextureID() const = 0;
+//     virtual void SetTextureID(int texId) = 0;
+//     virtual Material_t* GetMaterial(bool forceLoad=true) = 0;
+// };
+
+struct EditorTexture_t {
+    char path[260];
+    char __unknown0[268];
+    uint32 textureMappingWidth;
+    uint32 textureMappingHeight;
+    char __unknown1[1];
+    bool isLoaded;
+    uint8 __unknown2;
+    char __unknown3[37];
+    void* pMaterial;
 };
 
 struct Face_t {

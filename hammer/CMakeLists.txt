@@ -11,6 +11,7 @@ add_library(hamspot SHARED
 add_executable(hamspot-launcher
 	src/launcher/launcher.cpp
 	src/module.cpp
+	src/hotspot.cpp
 	src/faceedit.cpp
 )
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include "interfaces.h"
 
 namespace HotSpot {
 
@@ -29,6 +30,8 @@ struct RectHeader {
     std::vector<Rect> rects;
 };
 
+Rect CreateRect(Vec2i mins, Vec2i maxs, uint16_t flags=0);
+
 /// Parses the specified .rect file into a RectHeader
 RectHeader* ParseRectFile(void* data);
 
@@ -36,6 +39,6 @@ RectHeader* ParseRectFile(void* data);
 int MatchRandomBestRect(RectHeader* file, float targetAspect, float* resultDiff=NULL);
 
 /// Returns the reciprocal of the rect's scaling.
-void GetInvScaleFactor(RectHeader* header, int i, float* out_x, float* out_y);
+void GetOffsetAndInvScale(RectHeader* header, int i, Vector2* vOffset, Vector2* vInvScale);
 
 } // namespace HotSpot
