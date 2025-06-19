@@ -36,7 +36,7 @@ Rect CreateRect(Vec2i mins, Vec2i maxs, uint16_t flags=0);
 RectHeader* ParseRectFile(void* data);
 
 /// Returns the index of a random rect match.
-int MatchRandomBestRect(RectHeader* file, float targetAspect, float* resultDiff=NULL);
+int MatchRandomBestRect(RectHeader* file, float targetAspect, float targetScale, float* resultDiff=NULL);
 
 /// Returns the reciprocal of the rect's scaling.
 void GetOffsetAndInvScale(RectHeader* header, int i, Vector2* vOffset, Vector2* vInvScale);

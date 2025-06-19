@@ -4,7 +4,7 @@
 #include <math.h>
 #include "hotspot.h"
 
-#define DEFAULT_TEXTURE_SCALE 0.25
+#define DEFAULT_TEXTURE_SCALE 0.25f
 
 // Set by module.h
 JustifyTextureFunc f_JustifyTextureOriginal = NULL;
@@ -24,8 +24,8 @@ void SetOriginalCallbacks(JustifyTextureFunc cb_justifyTexture, CalcTextureCoord
     f_CalcTextureCoords = cb_calcCoords;
 }
 
-Vector Sub(Vector a, Vector b) { return { a.x+b.x, a.y+b.y, a.z+b.z }; }
-Vector2 Sub(Vector2 a, Vector2 b) { return { a.x+b.x, a.y+b.y }; }
+Vector Sub(Vector a, Vector b) { return { a.x-b.x, a.y-b.y, a.z-b.z }; }
+Vector2 Sub(Vector2 a, Vector2 b) { return { a.x-b.x, a.y-b.y }; }
 
 float Dot(Vector a, Vector b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
 float Dot(Vector2 a, Vector2 b) { return a.x * b.x + a.y * b.y; }
@@ -124,9 +124,11 @@ void JustifyTexturePatched(Face_t* pFace, TextureJustify_t justifyMode, Extents_
     // Get aspect ratio of surface
     Vector2 surfMins, surfMaxs;
     GetTextureBounds(pFace->texture, extents, surfMins, surfMaxs);
-    float aspect = (surfMaxs.x - surfMins.x) / (surfMaxs.y - surfMins.y);
+    Vector2 surfSize = Sub(surfMaxs, surfMins);
+    float aspect = surfSize.x / surfSize.y;
+    float maxDim = max(surfSize.x, surfSize.y);
     
-    DebugPrintF("Using aspect ratio of %2.2f\n", aspect);
+    DebugPrintF("Using aspect ratio of %2.2f (%2.2fx%2.2f)\n", aspect, surfSize.x, surfSize.y);
 
     // int rectIndex = 1;
 
@@ -137,7 +139,7 @@ void JustifyTexturePatched(Face_t* pFace, TextureJustify_t justifyMode, Extents_
     // if (rectDiffB < rectDiffA) rectIndex = rectIndexVert, rot90 = true;
 
     float rectDiff = -1;
-    int rectIndex = HotSpot::MatchRandomBestRect(tempFile, aspect, &rectDiff);
+    int rectIndex = HotSpot::MatchRandomBestRect(tempFile, aspect, maxDim / DEFAULT_TEXTURE_SCALE, &rectDiff);
 
     DebugPrintF("Chose rectangle %i with a diff of %.2f\n", rectIndex, rectDiff);
 

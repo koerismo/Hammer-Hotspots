@@ -10,7 +10,7 @@ Progress Checklist:
 - [X] Matches faces to correct rects
     - [X] Aspect ratio checking
     - [X] Aspect limited-error randomization
-    - [ ] World-space size weighting
+    - [X] World-space size weighting
 - [ ] Detects rectmap definitions in material VMTs
 - [ ] Loads rectmap files from the engine filesystem
 
