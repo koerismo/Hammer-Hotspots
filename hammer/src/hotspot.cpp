@@ -14,20 +14,21 @@ const float aspectErrorMargin = 0.01f;
 /// can be weighted by the world size error
 /// With a value of 0.6, a 2x-small texture will have a weight of 62.5%
 /// With a value of 8.0, a 2x-small texture will have a weight of 11.1%
-const float worldSizeWeight = 5.0f;
+const float worldSizeWeight = 6.0f;
 
 Rect CreateRect(Vec2i mins, Vec2i maxs, uint16_t flags) {
     return { flags, mins, maxs };
 }
 
-RectHeader* ParseRectFile(void* data) {
+RectContainer* ParseRectFile(void* data) {
     return NULL;
 }
 
-int MatchRandomBestRect(RectHeader* file, float targetAspect, float targetScale, float* resultDiff) {
+int MatchRandomBestRect(RectContainer* file, float targetAspect, float targetScale, bool* out_isRotated, float* out_resultDiff) {
     if (!file || !file->rects.size()) return -1;
     float logTargetScale = std::log2f(targetScale);
 
+    std::vector<bool>  rectsRotated(file->rects.size());
     std::vector<float> aspectErrors(file->rects.size());
     std::vector<float> scaleWeights(file->rects.size());
     float bestDiff = INFINITY;
@@ -41,9 +42,12 @@ int MatchRandomBestRect(RectHeader* file, float targetAspect, float targetScale,
         if (height < FLT_EPSILON || width < FLT_EPSILON) continue;
 
         float aspect = width / height;
+        rectsRotated[i] = rect.CanRotate() && ((aspect > 1) != (targetAspect > 1));
+        if (rectsRotated[i]) aspect = 1.0f / aspect;
+
         float aspectDiff = fabs(aspect - targetAspect);
         aspectErrors[i] = aspectDiff;
-        scaleWeights[i] = 1 / (1 + fabs(std::log2f(maxDim) - logTargetScale) * worldSizeWeight);
+        scaleWeights[i] = 1.0f / (1.0f + fabs(std::log2f(maxDim) - logTargetScale) * worldSizeWeight);
         if (aspectDiff < bestDiff) bestDiff = aspectDiff;
     }
 
@@ -77,11 +81,15 @@ int MatchRandomBestRect(RectHeader* file, float targetAspect, float targetScale,
         value -= weight;
     }
 
-    if (result != -1 && resultDiff != NULL) *resultDiff = aspectErrors[result];
+    // Skip setting out-values if we don't have a valid result.
+    if (result == -1) return -1;
+
+    *out_isRotated = rectsRotated[result];
+    if (out_resultDiff != NULL) *out_resultDiff = aspectErrors[result];
     return result;
 }
 
-void GetOffsetAndInvScale(RectHeader* header, int i, Vector2* vOffset, Vector2* vInvScale) {
+void GetOffsetAndInvScale(RectContainer* header, int i, Vector2* vOffset, Vector2* vInvScale) {
     Rect* rect = &header->rects[i];
     vOffset->x =  static_cast<float>(rect->mins.x) / static_cast<float>(header->texSize.x);
     vOffset->y =  static_cast<float>(rect->mins.y) / static_cast<float>(header->texSize.y);

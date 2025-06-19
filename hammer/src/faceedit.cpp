@@ -125,10 +125,11 @@ void JustifyTexturePatched(Face_t* pFace, TextureJustify_t justifyMode, Extents_
     Vector2 surfMins, surfMaxs;
     GetTextureBounds(pFace->texture, extents, surfMins, surfMaxs);
     Vector2 surfSize = Sub(surfMaxs, surfMins);
-    float aspect = surfSize.x / surfSize.y;
-    float maxDim = max(surfSize.x, surfSize.y);
-    
-    DebugPrintF("Using aspect ratio of %2.2f (%2.2fx%2.2f)\n", aspect, surfSize.x, surfSize.y);
+
+    float targetScale = max(surfSize.x, surfSize.y) / DEFAULT_TEXTURE_SCALE;
+    float targetAspect = surfSize.x / surfSize.y;
+
+    DebugPrintF("Using aspect ratio of %2.2f (%2.2fx%2.2f)\n", targetAspect, surfSize.x, surfSize.y);
 
     // int rectIndex = 1;
 
@@ -139,14 +140,22 @@ void JustifyTexturePatched(Face_t* pFace, TextureJustify_t justifyMode, Extents_
     // if (rectDiffB < rectDiffA) rectIndex = rectIndexVert, rot90 = true;
 
     float rectDiff = -1;
-    int rectIndex = HotSpot::MatchRandomBestRect(tempFile, aspect, maxDim / DEFAULT_TEXTURE_SCALE, &rectDiff);
+    bool isRotated = false;
+    int rectIndex = HotSpot::MatchRandomBestRect(tempFile, targetAspect, targetScale, &isRotated, &rectDiff);
 
-    DebugPrintF("Chose rectangle %i with a diff of %.2f\n", rectIndex, rectDiff);
+    DebugPrintF("Chose rectangle %i (rotated=%i) with a diff of %.2f\n", rectIndex, isRotated, rectDiff);
 
-    if (rectIndex == -1) {
-        // Cancel everything if we can't match a rect. This means something has gone wrong.
-        return f_JustifyTextureOriginal(pFace, justifyMode, extents);
-    }
+    // Cancel everything if we can't match a rect. This means something has gone wrong.
+    if (rectIndex == -1) return f_JustifyTextureOriginal(pFace, justifyMode, extents);
+
+    // TODO: This doesn't work??
+    // If we matched a rect that needs rotation, rotate the texture before fitting.
+    // if (isRotated) {
+    //     if (static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX) < 0.5)
+    //         pFace->texture.rotation -= 90;
+    //     else
+    //         pFace->texture.rotation += 90;
+    // }
 
     Vector2 uvMins, uvInvScale;
     HotSpot::GetOffsetAndInvScale(tempFile, rectIndex, &uvMins, &uvInvScale);
