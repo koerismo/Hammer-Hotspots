@@ -8,13 +8,6 @@ add_library(hamspot SHARED
 	src/faceedit.cpp
 )
 
-add_executable(hamspot-launcher
-	src/launcher/launcher.cpp
-	src/module.cpp
-	src/hotspot.cpp
-	src/faceedit.cpp
-)
-
 # REMOVE ME!!!!
 # set(IS_X86 1)
 # set(IS_P2 1)
@@ -47,13 +40,12 @@ set(MINHOOK_LIB "${CMAKE_CURRENT_SOURCE_DIR}/ext/minhook/lib/libMinHook.x64.lib"
 endif()
 
 target_link_libraries(hamspot ${MINHOOK_LIB} ${TIER0_LIB})
-target_link_libraries(hamspot-launcher ${MINHOOK_LIB} ${TIER0_LIB})
 
 # Set output version
 set_target_properties(hamspot PROPERTIES VERSION "${PROJECT_VERSION}")
-set_target_properties(hamspot-launcher PROPERTIES VERSION "${PROJECT_VERSION}")
 
 if(PASSTHRU)
+	add_compile_definitions(PASSTHRU=1)
 	set(DLL_NAME "hammer_dll")
 else()
 	set(DLL_NAME "hamspot")
@@ -61,7 +53,6 @@ endif()
 
 # Give outputs much cooler names
 set_target_properties(hamspot PROPERTIES OUTPUT_NAME "${DLL_NAME}${DLL_POSTFIX}")
-set_target_properties(hamspot-launcher PROPERTIES OUTPUT_NAME "HamLauncher${DLL_POSTFIX}")
 
 set(HAMSPOT_INCLUDES
 	"${CMAKE_CURRENT_SOURCE_DIR}/src/"
@@ -70,4 +61,3 @@ set(HAMSPOT_INCLUDES
 )
 
 target_include_directories(hamspot PRIVATE ${HAMSPOT_INCLUDES})
-target_include_directories(hamspot-launcher PRIVATE ${HAMSPOT_INCLUDES})
