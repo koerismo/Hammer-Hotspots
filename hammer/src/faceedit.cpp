@@ -51,26 +51,29 @@ void FitTextureToRect(Face_t* pFace, Extents_t extents, const Vector2 &uvMins, c
     GetTextureBounds(pFace->texture, extents, mins, maxs);
 
     EditorTexture_t* pTex = GetFaceEditorTexture(pFace);
-    if (pTex && pTex->textureMappingWidth && pTex->textureMappingHeight) {
-        pFace->texture.scaleX = (maxs.x - mins.x) / pTex->textureMappingWidth * uvInvScale.x;
-        pFace->texture.scaleY = (maxs.y - mins.y) / pTex->textureMappingHeight * uvInvScale.y;
-    }
-    else {
+    if (!pTex) {
         DebugPrintF("Editor texture is nullptr!?\n");
         pFace->texture.scaleX = 0.25; // (maxs.x - mins.x) / 512.0f;
         pFace->texture.scaleY = 0.25; // (maxs.y - mins.y) / 512.0f;
+        return;
+    }
+
+    Vector2 textureSize {
+        static_cast<float>(pTex->textureMappingWidth),
+        static_cast<float>(pTex->textureMappingHeight)
+    };
+
+    if (pTex->textureMappingWidth && pTex->textureMappingHeight) {
+        pFace->texture.scaleX = (maxs.x - mins.x) / textureSize.x * uvInvScale.x;
+        pFace->texture.scaleY = (maxs.y - mins.y) / textureSize.y * uvInvScale.y;
     }
 
     // Recalculate bounds after scaling
     GetTextureBounds(pFace->texture, extents, mins, maxs);
 
     // Align to top-left of UV rect
-    pFace->texture.axisU.w = -mins.x;
-    pFace->texture.axisV.w = -mins.y;
-    // pFace->texture.axisU.w = -(mins.x * (1.0f - uvMins.x) + maxs.x * uvMins.x);
-    // pFace->texture.axisV.w = -(mins.y * (1.0f - uvMins.y) + maxs.y * uvMins.y);
-    // pFace->texture.axisU.w = -mins.x - pTex->textureMappingWidth * uvMins.x;
-    // pFace->texture.axisV.w = -mins.y - pTex->textureMappingHeight * uvMins.y;
+    pFace->texture.axisU.w = -mins.x + textureSize.x * uvMins.x;
+    pFace->texture.axisV.w = -mins.y + textureSize.y * uvMins.y;
 }
 
 // masm syntax debug:
