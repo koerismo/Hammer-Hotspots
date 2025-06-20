@@ -45,7 +45,7 @@ Rect CreateRect(Vec2i mins, Vec2i maxs, uint16_t flags=0);
 RectContainer* ParseRectFile(void* data);
 
 /// Returns the index of a random rect match.
-int MatchRandomBestRect(RectContainer* file, float targetAspect, float targetScale, bool* out_isRotated, float* out_resultDiff=NULL);
+int MatchRandomBestRect(RectContainer* file, float targetAspect, float targetScale, bool* out_isRotated, float* out_aspectErr=NULL, float* out_scalingErr=NULL);
 
 /// Returns the reciprocal of the rect's scaling.
 void GetOffsetAndInvScale(RectContainer* header, int i, Vector2* vOffset, Vector2* vInvScale);

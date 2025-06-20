@@ -6,15 +6,12 @@
 
 namespace HotSpot {
 
-/// If any additional rects are within this threshold,
+/// If any other rects are within this threshold,
 /// they should be used to randomize the result.
-const float aspectErrorMargin = 0.01f;
+const float aspectErrorMargin = 0.02f;
 
-/// After the aspects are checked, the results
-/// can be weighted by the world size error
-/// With a value of 0.6, a 2x-small texture will have a weight of 62.5%
-/// With a value of 8.0, a 2x-small texture will have a weight of 11.1%
-const float worldSizeWeight = 6.0f;
+// (1.0 = allow 2x bigger or 2x smaller textures)
+const float scaleErrorMargin = 0.20f;
 
 Rect CreateRect(Vec2i mins, Vec2i maxs, uint16_t flags) {
     return { flags, mins, maxs };
@@ -24,17 +21,18 @@ RectContainer* ParseRectFile(void* data) {
     return NULL;
 }
 
-int MatchRandomBestRect(RectContainer* file, float targetAspect, float targetScale, bool* out_isRotated, float* out_resultDiff) {
+int MatchRandomBestRect(RectContainer* file, float targetAspect, float targetScale, bool* out_isRotated, float* out_aspectErr, float* out_scalingErr) {
     if (!file || !file->rects.size()) return -1;
     float logTargetScale = std::log2f(targetScale);
-
-    std::vector<bool>  rectsRotated(file->rects.size());
-    std::vector<float> aspectErrors(file->rects.size());
-    std::vector<float> scaleWeights(file->rects.size());
-    float bestDiff = INFINITY;
     
-    // Calculate the aspect ratio error of each rect
-    for (int i=0; i<aspectErrors.size(); i++) {
+    size_t rectCount = file->rects.size();
+    std::vector<bool>  rectsRotated(rectCount);
+    std::vector<float> aspectErrors(rectCount);
+    std::vector<float>  scaleErrors(rectCount);
+    float bestAspectError = INFINITY;
+    
+    // Calculate the aspect ratio and scaling errors of each rect
+    for (int i=0; i<rectCount; i++) {
         Rect rect = file->rects[i];
         float width = static_cast<float>(rect.maxs.x - rect.mins.x);
         float height = static_cast<float>(rect.maxs.y - rect.mins.y);
@@ -45,47 +43,36 @@ int MatchRandomBestRect(RectContainer* file, float targetAspect, float targetSca
         rectsRotated[i] = rect.CanRotate() && ((aspect > 1) != (targetAspect > 1));
         if (rectsRotated[i]) aspect = 1.0f / aspect;
 
-        float aspectDiff = fabs(aspect - targetAspect);
-        aspectErrors[i] = aspectDiff;
-        scaleWeights[i] = 1.0f / (1.0f + fabs(std::log2f(maxDim) - logTargetScale) * worldSizeWeight);
-        if (aspectDiff < bestDiff) bestDiff = aspectDiff;
+        float aspectError = fabs(aspect - targetAspect);
+        aspectErrors[i] = aspectError;
+        scaleErrors[i] = fabs(std::log2f(maxDim) - logTargetScale);
+        if (aspectError < bestAspectError) bestAspectError = aspectError;
     }
 
-    std::vector<int> matches;
+    std::vector<int> aspectMatches;
+    float bestScaleError = INFINITY;
     
-    // Pick only the best matches within an error margin
-    for (int i=0; i<aspectErrors.size(); i++) {
-        if (aspectErrors[i] <= bestDiff + aspectErrorMargin)
-            matches.push_back(i);
+    // Pick only the best aspect matches within an error margin
+    for (int i=0; i<rectCount; i++) {
+        if (aspectErrors[i] > bestAspectError + aspectErrorMargin) continue;
+        if (scaleErrors[i] < bestScaleError) bestScaleError = scaleErrors[i];
+        aspectMatches.push_back(i);
     }
 
-    if (matches.size() == 0) return -1;
-    if (matches.size() == 1) return matches[0];
-
-    // Accumulate sum so we can proportionally weight by scale
-    float weightSum = 0.0f;
-    for (int i=0; i<matches.size(); i++) {
-        weightSum += scaleWeights[matches[i]];
+    std::vector<int> finalMatches;
+    
+    // Pick only the best scaling matches within an error margin
+    for (int i=0; i<aspectMatches.size(); i++) {
+        if (scaleErrors[aspectMatches[i]] > bestScaleError + scaleErrorMargin) continue;
+        finalMatches.push_back(aspectMatches[i]);
     }
 
-    float value = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX) * weightSum;
-    int result = -1;
-
-    // Pick random value, accounting for weights
-    for (int i=0; i<matches.size(); i++) {
-        float weight = scaleWeights[matches[i]];
-        if (value < weight) {
-            result = matches[i];
-            break;
-        }
-        value -= weight;
-    }
-
-    // Skip setting out-values if we don't have a valid result.
-    if (result == -1) return -1;
+    if (finalMatches.size() == 0) return -1;
+    int result = finalMatches[std::rand() % finalMatches.size()];
 
     *out_isRotated = rectsRotated[result];
-    if (out_resultDiff != NULL) *out_resultDiff = aspectErrors[result];
+    if (out_aspectErr  != NULL) *out_aspectErr  = aspectErrors[result];
+    if (out_scalingErr != NULL) *out_scalingErr = scaleErrors[result];
     return result;
 }
 

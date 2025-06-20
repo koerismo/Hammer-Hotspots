@@ -43,6 +43,52 @@ void GetTextureBounds(Texture_t &texture, Extents_t extents, Vector2 &mins, Vect
     }
 }
 
+void MakeTempRects(std::vector<HotSpot::Rect> &vec) {
+    HotSpot::Vec2i tmp[][2] = {
+        {{0, 1024}, {1024, 2048}},    {{1024, 1024}, {1536, 2048}},
+        {{1536, 1024}, {1792, 2048}}, {{1792, 1024}, {1920, 2048}},
+        {{2032, 0}, {2048, 16}},      {{1920, 1024}, {1984, 2048}},
+        {{2032, 16}, {2048, 32}},     {{0, 512}, {1024, 1024}},
+        {{2032, 1024}, {2048, 2048}}, {{2016, 1024}, {2032, 2048}},
+        {{2016, 0}, {2032, 16}},      {{1984, 1024}, {2016, 2048}},
+        {{1984, 0}, {2016, 16}},      {{2016, 16}, {2032, 32}},
+        {{1920, 0}, {1984, 16}},      {{1984, 16}, {2016, 32}},
+        {{2032, 64}, {2048, 128}},    {{0, 32}, {1024, 64}},
+        {{1792, 0}, {1920, 16}},      {{1920, 16}, {1984, 32}},
+        {{1024, 32}, {1536, 64}},     {{1984, 32}, {2016, 64}},
+        {{1920, 32}, {1984, 64}},     {{1792, 32}, {1920, 64}},
+        {{1536, 32}, {1792, 64}},     {{1536, 0}, {1792, 16}},
+        {{1792, 16}, {1920, 32}},     {{1536, 16}, {1792, 32}},
+        {{2016, 64}, {2032, 128}},    {{1984, 64}, {2016, 128}},
+        {{1024, 0}, {1536, 16}},      {{1024, 16}, {1536, 32}},
+        {{2016, 32}, {2032, 64}},     {{1024, 512}, {1536, 1024}},
+        {{0, 0}, {1024, 16}},         {{2032, 32}, {2048, 64}},
+        {{0, 16}, {1024, 32}},        {{1920, 64}, {1984, 128}},
+        {{1536, 512}, {1792, 1024}},  {{1792, 64}, {1920, 128}},
+        {{1792, 512}, {1920, 1024}},  {{0, 128}, {1024, 256}},
+        {{1024, 128}, {1536, 256}},   {{1536, 128}, {1792, 256}},
+        {{1792, 128}, {1920, 256}},   {{1920, 128}, {1984, 256}},
+        {{1984, 128}, {2016, 256}},   {{2016, 128}, {2032, 256}},
+        {{2032, 128}, {2048, 256}},   {{0, 64}, {1024, 128}},
+        {{1024, 64}, {1536, 128}},    {{1536, 64}, {1792, 128}},
+        {{2032, 256}, {2048, 512}},   {{2016, 256}, {2032, 512}},
+        {{1984, 256}, {2016, 512}},   {{1920, 256}, {1984, 512}},
+        {{1792, 256}, {1920, 512}},   {{1536, 256}, {1792, 512}},
+        {{1024, 256}, {1536, 512}},   {{0, 256}, {1024, 512}},
+        {{2032, 512}, {2048, 1024}},  {{2016, 512}, {2032, 1024}},
+        {{1984, 512}, {2016, 1024}},  {{1920, 512}, {1984, 1024}}
+    };
+
+    int rectCount = _countof(tmp);
+    vec.resize(rectCount);
+
+    for (int i=0; i<rectCount; i++) {
+        vec[i].mins = tmp[i][0];
+        vec[i].maxs = tmp[i][1];
+        // vec[i].flags += static_cast<uint8>(HotSpot::RectFlags_t::enable_rotation);
+    }
+}
+
 void FitTextureToRect(Face_t* pFace, Extents_t extents, const Vector2 &uvMins, const Vector2 &uvInvScale) {
     pFace->texture.scaleX = 1.0;
     pFace->texture.scaleY = 1.0;
@@ -87,7 +133,7 @@ void JustifyTexturePatched(Face_t* pFace, TextureJustify_t justifyMode, Extents_
         return f_JustifyTextureOriginal(pFace, justifyMode, extents);
     }
 
-    DebugPrintF("JustifyTexture called! texture=\"%s\"\n", pFace->texture.path, justifyMode);
+    // DebugPrintF("JustifyTexture called! texture=\"%s\"\n", pFace->texture.path, justifyMode);
     // DebugPrintF("bounds=[\n");
     // for (int i = 0; i < 6; i ++) {
     //     auto ex = extents[i];
@@ -95,32 +141,15 @@ void JustifyTexturePatched(Face_t* pFace, TextureJustify_t justifyMode, Extents_
     // }
     // DebugPrintF("]\n");
 
-    // TODO: Figure out actually correct offset for editor texture pointer
-    EditorTexture_t* eTex = GetFaceEditorTexture(pFace);
-    if (!eTex) {
-        DebugPrintF("Texture info is nullptr! This will disable scaling math.\n");
-    }
-
-    // else {
-    //     DebugPrintF("Texture pointer is 0x%x\n", eTex);
-    //     DebugPrintF("Texture dimensions: %ix%i\n", eTex->textureMappingWidth, eTex->textureMappingHeight);
-    // }
-
     // TODO: Load and cache the rectheader from the selected material!
-    auto tempFile = new HotSpot::RectHeader;
-    tempFile->texSize = { 512, 512 };
-    tempFile->rects.reserve(7);
-    tempFile->rects.push_back(HotSpot::CreateRect({ 0, 0 }, { 256, 256 }));
-    tempFile->rects.push_back(HotSpot::CreateRect({ 256, 0 }, { 384, 256 }));
-    tempFile->rects.push_back(HotSpot::CreateRect({ 384, 0 }, { 448, 256 }));
-    tempFile->rects.push_back(HotSpot::CreateRect({ 480, 0 }, { 496, 256 }));
-    tempFile->rects.push_back(HotSpot::CreateRect({ 496, 0 }, { 512, 256 }));
-    tempFile->rects.push_back(HotSpot::CreateRect({ 0, 256 }, { 512, 512 }));
+    auto tempFile = new HotSpot::RectContainer;
+    tempFile->texSize = { 2048, 2048 };
+    MakeTempRects(tempFile->rects);
 
     // Reset scaling so that GetTextureBounds works
     pFace->texture.scaleX = 1.0;
     pFace->texture.scaleY = 1.0;
-    
+
     // Get aspect ratio of surface
     Vector2 surfMins, surfMaxs;
     GetTextureBounds(pFace->texture, extents, surfMins, surfMaxs);

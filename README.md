@@ -6,14 +6,22 @@ A plugin to add [hotspotting](https://developer.valvesoftware.com/wiki/Half-Life
 
 Progress Checklist:
 
-- [X] Overrides "fit" functionality when a rectmap is available.
-- [X] Matches faces to correct rects
+- [X] Algorithm
     - [X] Aspect ratio checking
-    - [X] Aspect limited-error randomization
-    - [X] World-space size weighting
-- [ ] Detects rectmap definitions in material VMTs
-- [ ] Loads rectmap files from the engine filesystem
+    - [X] Aspect rotation matching<sup>1</sup>
+    - [X] World-space size matching
+    - [X] Limited-error randomization
+- [ ] Integration
+    - [ ] Accesses VTF data
+    - [ ] Loads rect information from Hotspot resource
+    - [X] Overrides "fit" functionality when a rectmap is available<sup>2</sup>
+    - [X] Detects face boundaries
+    - [X] Matches and applies rects
+    - [ ] Applies rotated rects non-destructively
 
+**1**. Rotation flags are forced off for now due to lack of proper implementation support.
+
+**2**. Since VTF parsing is incomplete, materials are assumed to have the DreamUV example layout.
 
 ## Creating RectMaps
 
@@ -30,14 +38,4 @@ npm run generate <imagePath>
 > [!WARNING]
 > This, and I cannot stress this enough, will not work. Because the plugin isn't finished.
 
-To inform the plugin that the rectmap exists, add it to your material's VMT as follows:
-
-```
-VertexLitGeneric {
-    $basetexture "..."
-    $bumpmap "..."
-    // etc.
-
-    %RectMap "mytexture_rects.rect"
-}
-```
+Hotspot maps will automatically be applied when using the "fit" button if the current texture contains hotspot information.
