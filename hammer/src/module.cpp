@@ -7,8 +7,8 @@
 #endif
 
 #if WIN32 && GAME_P2CE
-#define PTR_CALC_COORDS         0x018d1e0
-#define PTR_JUSTIFY_TEXTURE     0x018f860
+#define PTR_CALC_COORDS         0x01943a0
+#define PTR_JUSTIFY_TEXTURE     0x0196a30
 #elif WIN32 && GAME_P2
 #define PTR_CALC_COORDS         0x012a4e0
 #define PTR_JUSTIFY_TEXTURE     0x012bbc0
