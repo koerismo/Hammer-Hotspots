@@ -21,7 +21,7 @@ RectContainer* ParseRectFile(void* data) {
     return NULL;
 }
 
-int MatchRandomBestRect(RectContainer* file, float targetAspect, float targetScale, bool* out_isRotated, float* out_aspectErr, float* out_scalingErr) {
+int MatchRandomBestRect(RectContainer* file, float targetAspect, float targetScale, bool altGroup, bool* out_isRotated, float* out_aspectErr, float* out_scalingErr) {
     if (!file || !file->rects.size()) return -1;
     float logTargetScale = std::log2f(targetScale);
     
@@ -34,6 +34,7 @@ int MatchRandomBestRect(RectContainer* file, float targetAspect, float targetSca
     // Calculate the aspect ratio and scaling errors of each rect
     for (int i=0; i<rectCount; i++) {
         Rect rect = file->rects[i];
+        if (rect.IsAltGroup() != altGroup) continue;
         float width = static_cast<float>(rect.maxs.x - rect.mins.x);
         float height = static_cast<float>(rect.maxs.y - rect.mins.y);
         float maxDim = (width > height ? width : height);
@@ -54,6 +55,7 @@ int MatchRandomBestRect(RectContainer* file, float targetAspect, float targetSca
     
     // Pick only the best aspect matches within an error margin
     for (int i=0; i<rectCount; i++) {
+        if (file->rects[i].IsAltGroup() != altGroup) continue;
         if (aspectErrors[i] > bestAspectError + aspectErrorMargin) continue;
         if (scaleErrors[i] < bestScaleError) bestScaleError = scaleErrors[i];
         aspectMatches.push_back(i);
