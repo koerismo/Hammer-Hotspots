@@ -2,6 +2,7 @@
 
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <mfapi.h>
 #include "hotspot.h"
 
 #define DEFAULT_TEXTURE_SCALE 0.25f
@@ -85,7 +86,8 @@ void MakeTempRects(std::vector<HotSpot::Rect> &vec) {
     for (int i=0; i<rectCount; i++) {
         vec[i].mins = tmp[i][0];
         vec[i].maxs = tmp[i][1];
-        // vec[i].flags += static_cast<uint8>(HotSpot::RectFlags_t::enable_rotation);
+        if (i == 0) vec[i].flags |= static_cast<uint8>(HotSpot::RectFlags_t::alt_group);
+        // vec[i].flags |= static_cast<uint8>(HotSpot::RectFlags_t::enable_rotation);
     }
 }
 
@@ -153,24 +155,19 @@ void JustifyTexturePatched(Face_t* pFace, TextureJustify_t justifyMode, Extents_
     // Get aspect ratio of surface
     Vector2 surfMins, surfMaxs;
     GetTextureBounds(pFace->texture, extents, surfMins, surfMaxs);
-    Vector2 surfSize = Sub(surfMaxs, surfMins);
+    const Vector2 surfSize = Sub(surfMaxs, surfMins);
 
-    float targetScale = max(surfSize.x, surfSize.y) / DEFAULT_TEXTURE_SCALE;
-    float targetAspect = surfSize.x / surfSize.y;
+    const float targetScale = max(surfSize.x, surfSize.y) / DEFAULT_TEXTURE_SCALE;
+    const float targetAspect = surfSize.x / surfSize.y;
 
-    DebugPrintF("Using aspect ratio of %2.2f (%2.2fx%2.2f)\n", targetAspect, surfSize.x, surfSize.y);
+    // DebugPrintF("Using aspect ratio of %2.2f (%2.2fx%2.2f)\n", targetAspect, surfSize.x, surfSize.y);
 
-    // int rectIndex = 1;
-
-    // bool rot90 = false;
-    // float rectDiffA, rectDiffB;
-    // int rectIndex     = HotSpot::MatchRandomBestRect(tempFile, aspect, &rectDiffA);
-    // int rectIndexVert = HotSpot::MatchRandomBestRect(tempFile, 1/aspect, &rectDiffB);
-    // if (rectDiffB < rectDiffA) rectIndex = rectIndexVert, rot90 = true;
+    // Check if the alt key is currently pressed to determine whether we should use the alt group.
+    const bool altGroup = GetAsyncKeyState(VK_MENU) & 0xff00;
 
     float rectDiff = -1;
     bool isRotated = false;
-    int rectIndex = HotSpot::MatchRandomBestRect(tempFile, targetAspect, targetScale, &isRotated, &rectDiff);
+    const int rectIndex = HotSpot::MatchRandomBestRect(tempFile, targetAspect, targetScale, altGroup, &isRotated, &rectDiff);
 
     DebugPrintF("Chose rectangle %i (rotated=%i) with a diff of %.2f\n", rectIndex, isRotated, rectDiff);
 
