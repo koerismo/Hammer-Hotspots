@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { Rect, RectHeader } from "./encode.js";
+import { RectFlags, type Rect, type RectHeader } from "./encode.ts";
 
 interface ImageData {
 	width: number;
@@ -17,7 +17,8 @@ export async function openImage(path: string): Promise<ImageData> {
 	}
 }
 
-function splitsFromImage(img: ImageData): Rect[] {
+function splitsFromImage(img: ImageData, baseFlags: number, uva: boolean): Rect[] {
+	const isAltGroup = (b: number) => (uva && (b >= 128));
 	const hashColor = (r: number, g: number, b: number) => (r | (g << 8) | (b << 16)).toString();
 	const data = img.data;
 	const rects: Record<string, Rect> = {};
@@ -34,16 +35,21 @@ function splitsFromImage(img: ImageData): Rect[] {
 				if (y >= rect.maxs.y) rect.maxs.y = y+1;
 			}
 			else {
-				rects[hash] = { flags: 0, mins: { x, y }, maxs: { x, y } };
+				let flags = baseFlags;
+				if (isAltGroup(data[i+2])) flags |= RectFlags.AltGroup;
+				rects[hash] = { flags, mins: { x, y }, maxs: { x, y } };
 			}
 		}
 	}
 
-	return Object.values(rects);
+	return Object.values(rects).sort((a, b) => {
+		if (a.mins.y !== b.mins.y) return a.mins.y - b.mins.y;
+		return a.mins.x - b.mins.x;
+	});
 }
 
-export function rectFileFromImage(img: ImageData): RectHeader {
-	const rects = splitsFromImage(img);
+export function rectFileFromImage(img: ImageData, baseFlags: number, uva: boolean): RectHeader {
+	const rects = splitsFromImage(img, baseFlags, uva);
 	return {
 		flags: 0,
 		texSize: { x: img.width, y: img.height },

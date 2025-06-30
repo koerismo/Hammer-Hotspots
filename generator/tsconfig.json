@@ -5,7 +5,9 @@
         "target": "esnext",
         "module": "nodenext",
         "allowSyntheticDefaultImports": true,
-        "moduleResolution": "nodenext"
+        "moduleResolution": "nodenext",
+        "allowImportingTsExtensions": true,
+        "noEmit": true
     },
     "include": ["src/"]
 }

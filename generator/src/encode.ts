@@ -17,10 +17,16 @@ export interface Rect {
 }
 
 function write_rect(b: ViewBuffer, rect: Rect) {
-	b.write_u16(rect.flags);
+	b.write_u8(rect.flags);
 	write_v2(b, rect.mins); 
 	write_v2(b, rect.maxs); 
 }
+
+export const RectFlags = {
+	AllowRotation: 0x1,
+	AllowReflection: 0x2,
+	AltGroup: 0x4,
+} as const;
 
 export interface RectHeader {
 	flags: number;
@@ -29,11 +35,9 @@ export interface RectHeader {
 }
 
 function write_file(b: ViewBuffer, file: RectHeader) {
-	b.write_str('RECT', 4);
-	b.write_u16(file.flags);
-	write_v2(b, file.texSize);
+	b.write_u8(1);
+	b.write_u8(file.flags);
 	b.write_u16(file.rects.length);
-	b.write_u16(b.pointer + 2);
 
 	for (let i=0; i<file.rects.length; i++) {
 		write_rect(b, file.rects[i]);
@@ -41,8 +45,8 @@ function write_file(b: ViewBuffer, file: RectHeader) {
 }
 
 function est_file(file: RectHeader) {
-	const HEAD_SIZE = 14;
-	const RECT_SIZE = 10;
+	const HEAD_SIZE = 4;
+	const RECT_SIZE = 9;
 	return HEAD_SIZE + file.rects.length * RECT_SIZE;
 }
 

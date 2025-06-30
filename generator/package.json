@@ -9,7 +9,7 @@
 	},
 	"scripts": {
 		"build": "tsc",
-		"generate": "node dist/index.js"
+		"generate": "node src/index.ts"
 	},
 	"keywords": [],
 	"author": "",
@@ -17,10 +17,12 @@
 	"packageManager": "pnpm@10.12.1",
 	"dependencies": {
 		"sharp": "^0.34.2",
-		"stupid-buffer": "^1.0.3"
+		"stupid-buffer": "^1.0.3",
+		"yargs": "^18.0.0"
 	},
 	"devDependencies": {
 		"@types/node": "^24.0.1",
+		"@types/yargs": "^17.0.33",
 		"typescript": "^5.8.3"
 	}
 }
