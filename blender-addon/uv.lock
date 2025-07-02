@@ -1,0 +1,23 @@
+version = 1
+revision = 2
+requires-python = ">=3.13"
+
+[[package]]
+name = "blender"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "fake-bpy-module-latest" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "fake-bpy-module-latest", specifier = ">=20250630" }]
+
+[[package]]
+name = "fake-bpy-module-latest"
+version = "20250630"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7b/f6/d5f214a51732906d0340514c623ba8cb542653c50de6fbd6008e80ae927a/fake_bpy_module_latest-20250630.tar.gz", hash = "sha256:7575c1c5805ffd8c9b0d2511318ea2aa939a00cef7d466af4ddf37ccdbb2bc0c", size = 955081, upload-time = "2025-06-30T06:19:44.798Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bd/64/64d76563cd5768bae4a81653e23120e919eb227e5d97b29244ec395b9b9d/fake_bpy_module_latest-20250630-py3-none-any.whl", hash = "sha256:6d26b19a8c0e47317b38a72cfe4ae6c9ce238e968c0d60496ccf0dea9a310440", size = 1081864, upload-time = "2025-06-30T06:19:41.928Z" },
+]

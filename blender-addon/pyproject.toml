@@ -1,0 +1,9 @@
+[project]
+name = "blender-addon"
+version = "0.1.0"
+description = "Export .hot resources from Blender"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fake-bpy-module-latest>=20250630",
+]
