@@ -163,7 +163,7 @@ def face_edit_menu_func(self: bpy.types.Panel, context: Context):
 	self.layout.operator(HotSpot_SetFlagsOp.bl_idname, text='Set HotSpot Flags')
 
 def register():
-	bpy.types.Mesh.hs_dimensions = bpy.props.IntVectorProperty(name='Dimensions', size=2, options=set(), min=8, max=16384, default=(512, 512)) # type: ignore
+	bpy.types.Mesh.hs_dimensions = bpy.props.IntVectorProperty(name='Dimensions', size=2, options=set(), min=8, max=16384, default=(1024, 1024)) # type: ignore
 	bpy.utils.register_class(HotSpot_MainPanel)
 	bpy.utils.register_class(HotSpot_ExportOp)
 	bpy.utils.register_class(HotSpot_SetFlagsOp)

@@ -21,9 +21,9 @@ class BBox():
 	def to_rect(self, flags: int, res_x: int, res_y: int):
 		return HotSpotRect(flags,
 			round(self.min_x * res_x),
-			round(self.min_y * res_y),
+			round((1.0 - self.max_y) * res_y),
 			round(self.max_x * res_x),
-			round(self.max_y * res_y),
+			round((1.0 - self.min_y) * res_y),
 		)
 
 class HotSpotFlags(IntFlag):
