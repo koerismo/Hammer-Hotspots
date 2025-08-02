@@ -1,8 +1,9 @@
 import bpy
 import bmesh
 from bpy.types import Context, Event
+from bpy.props import IntVectorProperty, BoolProperty
+from bpy_extras.io_utils import ExportHelper
 from typing import Literal, Any
-from mathutils import Vector
 from . import hotlib as H
 
 HOTSPOT_ATTRIBUTE = 'hotspot_flags'
@@ -74,9 +75,9 @@ class HotSpot_SetFlagsOp(bpy.types.Operator):
 		assert layer, 'Failed to get hotspot_flags data layer from mesh!'
 
 		face_flags = 0x00
-		if self.hs_flag_rotate:   face_flags |= 0x1
-		if self.hs_flag_reflect:  face_flags |= 0x2
-		if self.hs_flag_altgroup: face_flags |= 0x4
+		if self.hs_flag_rotate:   face_flags |= H.HotSpotFlags.Rotation
+		if self.hs_flag_reflect:  face_flags |= H.HotSpotFlags.Reflection
+		if self.hs_flag_altgroup: face_flags |= H.HotSpotFlags.AltGroup
 
 		count = 0
 		for face in bm.faces:
@@ -90,29 +91,30 @@ class HotSpot_SetFlagsOp(bpy.types.Operator):
 		self.report({ 'INFO' }, f'Set flags for {count} faces!')
 		return { 'FINISHED' }
 
-class HotSpot_ExportOp(bpy.types.Operator):
+class HotSpot_ExportOp(bpy.types.Operator, ExportHelper):
 	bl_idname = 'shotspot.export'
 	bl_label = 'Export'
-	bl_description = 'Exports the current UV map to a HOT resource.'
+	bl_description = 'Exports the current UV map to a hotspot definition file.'
 
-	filepath: bpy.props.StringProperty(subtype='FILE_PATH', name='Save Path') # type: ignore
-	filename: bpy.props.StringProperty(subtype='FILE_NAME') # type: ignore
-	filter_glob: bpy.props.StringProperty(default='*.hot', options={ 'HIDDEN' }) # type: ignore
+	filename_ext = '.rect'
+	filter_glob: bpy.props.StringProperty(default='*.rect', options={ 'HIDDEN' })
+
+	use_text_format: BoolProperty(name='Use Text Format', description='Export to text-based format?', default=True)
 
 	@classmethod
 	def poll(cls, context: Context) -> bool:
 		if context.mode != 'OBJECT': return False
 		return get_mesh(context.object) != None
 
-	def invoke(self, context: Context, event: Event):
-		assert context.active_object
-		if not self.filename:
-			self.filename = context.active_object.name + '.hot'
+	# def invoke(self, context: Context, event: Event) -> set:
+	# 	assert context.active_object
+	# 	if not self.filename:
+	# 		self.filename = context.active_object.name + '.rect'
 
-		wm = context.window_manager
-		assert wm
-		wm.fileselect_add(self)
-		return {'RUNNING_MODAL'}
+	# 	wm = context.window_manager
+	# 	assert wm
+	# 	wm.fileselect_add(self)
+	# 	return { 'RUNNING_MODAL' }
 
 	def execute(self, context: Context) -> set[Literal['RUNNING_MODAL', 'CANCELLED', 'FINISHED', 'PASS_THROUGH', 'INTERFACE']]:
 		mesh = get_mesh(context.active_object)
@@ -151,8 +153,13 @@ class HotSpot_ExportOp(bpy.types.Operator):
 			rects.append(regions[i].to_rect(face_flags, res_x, res_y))
 
 		out = H.HotSpotFile(rects)
-		with open(self.filepath, 'wb') as f:
-			f.write(out.pack())
+		if self.use_text_format:
+			with open(self.filepath, 'w') as f:
+				f.write(out.as_text())
+		else:
+			with open(self.filepath, 'wb') as f:
+				f.write(out.pack())
+			
 
 		self.report({ 'INFO' }, f'Wrote {len(regions)} rects to resource!')
 		return { 'FINISHED' }

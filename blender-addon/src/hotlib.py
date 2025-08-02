@@ -6,6 +6,9 @@ from math import inf
 S_HotSpotHeader = Struct('<BBH')
 S_HotSpotRect = Struct('<BHHHH')
 
+def linejoin(*lines: str, indent: str=''):
+	return '\n'.join([indent + l for l in lines])
+
 class BBox():
 	min_x: float = inf
 	min_y: float = inf
@@ -27,9 +30,9 @@ class BBox():
 		)
 
 class HotSpotFlags(IntFlag):
-	AllowRotation = 0x1
-	AllowReflection = 0x2
-	AltGroup = 0x4
+	Rotation   = 0x1
+	Reflection = 0x2
+	AltGroup   = 0x4
 
 class HotSpotRect(NamedTuple):
 	flags: int
@@ -43,6 +46,21 @@ class HotSpotRect(NamedTuple):
 			bytes, idx, self.flags,
 			self.min_x, self.min_y,
 			self.max_x, self.max_y)
+		
+	def as_text(self):
+		flags: list[str] = []
+		if self.flags & HotSpotFlags.Rotation:    flags.append('\trotate 1')
+		if self.flags & HotSpotFlags.Reflection:  flags.append('\treflect 1')
+		if self.flags & HotSpotFlags.AltGroup:    flags.append('\talt 1')
+
+		return linejoin(
+			'rectangle',
+			'{',
+			f'\tmin "{self.min_x} {self.min_y}"',
+			f'\tmax "{self.max_x} {self.max_y}"',
+			*flags,
+			'}'
+		, indent='\t')
 
 class HotSpotFile(NamedTuple):
 	rects: list[HotSpotRect]
@@ -60,3 +78,11 @@ class HotSpotFile(NamedTuple):
 			idx += 9
 
 		return data
+	
+	def as_text(self):
+		return linejoin(
+			'Rectangles',
+			'{',
+			*[rect.as_text() for rect in self.rects],
+			'}'
+		)
