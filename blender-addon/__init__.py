@@ -3,9 +3,9 @@ from . import src
 bl_info = {
 	'name': 'Source HotSpot',
     'author': 'Koerismo',
-    'description': 'Export .hot resources from Blender',
+    'description': 'Export Hotspot resources from Blender',
     'blender': (4, 0, 0),
-    'version': (0, 2, 0),
+    'version': (0, 3, 0),
     'location': '3D View > Sidebar',
     'category': 'Import-Export'
 }

@@ -47,7 +47,7 @@ class HotSpotRect(NamedTuple):
 			self.min_x, self.min_y,
 			self.max_x, self.max_y)
 		
-	def as_text(self):
+	def to_string(self):
 		flags: list[str] = []
 		if self.flags & HotSpotFlags.Rotation:    flags.append('\trotate 1')
 		if self.flags & HotSpotFlags.Reflection:  flags.append('\treflect 1')
@@ -79,10 +79,10 @@ class HotSpotFile(NamedTuple):
 
 		return data
 	
-	def as_text(self):
+	def to_string(self):
 		return linejoin(
 			'Rectangles',
 			'{',
-			*[rect.as_text() for rect in self.rects],
+			*[rect.to_string() for rect in self.rects],
 			'}'
 		)

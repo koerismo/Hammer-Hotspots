@@ -1,7 +1,7 @@
 import bpy
 import bmesh
 from bpy.types import Context, Event
-from bpy.props import IntVectorProperty, BoolProperty
+from bpy.props import BoolProperty
 from bpy_extras.io_utils import ExportHelper
 from typing import Literal, Any
 from . import hotlib as H
@@ -106,16 +106,6 @@ class HotSpot_ExportOp(bpy.types.Operator, ExportHelper):
 		if context.mode != 'OBJECT': return False
 		return get_mesh(context.object) != None
 
-	# def invoke(self, context: Context, event: Event) -> set:
-	# 	assert context.active_object
-	# 	if not self.filename:
-	# 		self.filename = context.active_object.name + '.rect'
-
-	# 	wm = context.window_manager
-	# 	assert wm
-	# 	wm.fileselect_add(self)
-	# 	return { 'RUNNING_MODAL' }
-
 	def execute(self, context: Context) -> set[Literal['RUNNING_MODAL', 'CANCELLED', 'FINISHED', 'PASS_THROUGH', 'INTERFACE']]:
 		mesh = get_mesh(context.active_object)
 		if mesh == None: return { 'CANCELLED' }
@@ -155,7 +145,7 @@ class HotSpot_ExportOp(bpy.types.Operator, ExportHelper):
 		out = H.HotSpotFile(rects)
 		if self.use_text_format:
 			with open(self.filepath, 'w') as f:
-				f.write(out.as_text())
+				f.write(out.to_string())
 		else:
 			with open(self.filepath, 'wb') as f:
 				f.write(out.pack())
