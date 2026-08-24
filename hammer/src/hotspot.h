@@ -1,28 +1,49 @@
 #pragma once
 
+#include <type_traits>
 #include <vector>
+#include <limits>
 #include "interfaces.h"
 
 namespace HotSpot {
 
-typedef unsigned short uint16;
+const float kFloatInf = std::numeric_limits<float>::infinity();
 
-struct Vec2i {
-    uint16 x, y;
+union Vec2i {
+    Vec2i() : x(0), y(0) {};
+    template<typename T> requires(std::is_arithmetic_v<T>)
+    Vec2i(T x, T y) : x(x), y(y) {};
+
+    Vec2i Swapped() const { return Vec2i(y, x); }
+
+    uint16_t xy[2];
+    struct { uint16_t x, y; };
 };
 
-// HotspotHeader_t
-struct RectResourceHeader {
-    unsigned char  version;    // The resource version. Currently 0x1
-    unsigned char  flags;      // Implementation-specific flags for editors.
-    unsigned short rect_count; // The number of rect regions.
+union Vec2f {
+    Vec2f() : x(0), y(0) {};
+    template<typename T> requires(std::is_arithmetic_v<T>)
+    Vec2f(T x, T y) : x(x), y(y) {};
+
+    inline Vec2f Swapped() const { return Vec2f(y, x); }
+    inline float Dot(Vec2f &alt) { return x * alt.x + y * alt.y; }
+    inline Vec2f Normalized(float* p_length) const {
+        double length = std::hypot(x, y);
+        if (p_length != nullptr) *p_length = length;
+        return Vec2f(x / length, y / length);
+    }
+
+    double xy[2];
+    struct { double x, y; };
 };
 
 // HotspotRectFlags_t
 enum class RectFlags_t : unsigned char {
-    enable_rotation   = 0x1, // Can this region be randomly rotated?
-    enable_reflection = 0x2, // Can this region be randomly horizontally flipped?
-    alt_group         = 0x4, // If true, this region belongs to the alternate group.
+    enable_rotation   = 0x1,  // Can this region be randomly rotated?
+    enable_reflection = 0x2,  // Can this region be randomly horizontally flipped?
+    alt_group         = 0x4,  // If true, this region belongs to the alternate group.
+    tile_x            = 0x8,  // Can this region tile horizontally?
+    tile_y            = 0x10, // Can this region tile vertically?
 };
 
 // HotspotRect_t
@@ -30,26 +51,38 @@ struct Rect {
     uint16 flags;
     Vec2i mins, maxs;
 
-    bool CanRotate() { return flags & static_cast<uint8>(RectFlags_t::enable_rotation); }
-    bool CanReflect() { return flags & static_cast<uint8>(RectFlags_t::enable_reflection); }
-    bool IsAltGroup() { return flags & static_cast<uint8>(RectFlags_t::alt_group); }
+    inline int GetWidth() const { return maxs.x - mins.x; }
+    inline int GetHeight() const { return maxs.y - mins.y; }
+
+    inline bool CanRotate() const { return flags & static_cast<uint8>(RectFlags_t::enable_rotation); }
+    inline bool CanReflect() const { return flags & static_cast<uint8>(RectFlags_t::enable_reflection); }
+    inline bool CanTileX() const { return flags & static_cast<uint8>(RectFlags_t::tile_x); }
+    inline bool CanTileY() const { return flags & static_cast<uint8>(RectFlags_t::tile_y); }
+    inline bool IsAltGroup() const { return flags & static_cast<uint8>(RectFlags_t::alt_group); }
 };
 
-struct RectContainer {
-    uint8 flags;
-    Vec2i  texSize;
+struct RectFitResult {
+    float score;
+    Vec2i tiling;
+    bool rotated;
+};
+
+struct RectFile {
+    uint8_t flags;
+    Vec2i tex_size;
     std::vector<Rect> rects;
 };
 
-Rect CreateRect(Vec2i mins, Vec2i maxs, uint16_t flags=0);
+// Uses all available rect flags to calculate a best-case score, orientation, and tiling for the provided rect.
+void GetScore(const Vec2f &dims_surf, const Rect &rect, float *out_score,
+              bool *out_rotated, Vec2i *out_tiling);
 
-/// Parses the specified .rect file into a RectHeader
-RectContainer* ParseRectFile(void* data);
+// Finds a random best rect within `kErrorMargin` for `dims_surf` and returns the fitting info.
+int FitRectToSurface(std::vector<Rect> rects, Vec2f &dims_surf,
+                     RectFitResult *out_result);
 
-/// Returns the index of a random rect match.
-int MatchRandomBestRect(RectContainer* file, float targetAspect, float targetScale, bool altGroup, bool* out_isRotated, float* out_aspectErr=NULL, float* out_scalingErr=NULL);
+void GetOffsetAndInvScale(RectFile *file, int idx, Vector2 *out_offset,
+                          Vector2 *out_inv_scale);
 
-/// Returns the reciprocal of the rect's scaling.
-void GetOffsetAndInvScale(RectContainer* header, int i, Vector2* vOffset, Vector2* vInvScale);
 
 } // namespace HotSpot
