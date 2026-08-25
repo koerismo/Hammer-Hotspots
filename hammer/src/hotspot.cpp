@@ -102,7 +102,7 @@ void GetTiledScore(
     *out_tiling = score_2 > score_1 ? tiling_2 : tiling_1;
 }
 
-// Uses all available rect flags to calculate a best-case score, orientation, and tiling for the provided rect.
+// Uses tiling (when applicable) to calculate a best-case score for the provided rect.
 void GetScore(
     const Vec2f &dims_surf,
     const Rect &rect,
@@ -110,71 +110,64 @@ void GetScore(
 ) {
     if (rect.CanTile()) {
         GetTiledScore(dims_surf, rect,  &out_result->score, &out_result->tiling);
-
-        if (rect.CanRotate()) {
-            RectFitResult out_result_2{ .rotated = true };
-            GetTiledScore({ dims_surf.y, dims_surf.x },rect, &out_result_2.score, &out_result_2.tiling);
-
-            if (out_result_2.score > out_result->score) {
-                *out_result = out_result_2;
-            }
-        } else {
-            out_result->rotated = false;
-        }
-
     } else {
         out_result->tiling = Vec2i(1, 1);
-        out_result->rotated =
-            (dims_surf.y > dims_surf.x) != (rect.GetHeight() > rect.GetWidth());
-
-        Vec2f dims_rect(rect.GetWidth(), rect.GetHeight());
-
-        out_result->score = GetBasicScore(
-            out_result->rotated ? dims_surf.Swapped() : dims_surf,
-            dims_rect
-        );
+        out_result->score = GetBasicScore(dims_surf, Vec2f(rect.GetWidth(), rect.GetHeight()));
     }
 }
 
 // Finds a random best rect within `kErrorMargin` for `dims_surf` and returns the fitting info.
 int FitRectToSurface(
     std::vector<Rect> rects,
-    Vec2f &dims_surf,
+    Vec2f &surf_dims,
     RectFitResult* out_result
 ) {
-    std::vector<RectFitResult> fit_results(rects.size());
+    std::vector<RectFitResult> fit_results;
+    fit_results.reserve(rects.size());
+    
     float best_score = -kFloatInf;
     int best_index = -1;
 
-    for (int i = 0; i < rects.size(); i++) {
-        float score;
-        bool rotated;
-        Vec2i tiling;
+    for (int rect_idx = 0; rect_idx < rects.size(); rect_idx++) {
 
-        RectFitResult& result = fit_results[i];
-        GetScore(dims_surf, rects[i], &result);
-        if (result.score > best_score) {
-            best_score = result.score;
-            best_index = i;
+        const auto add_fit_result = [
+                &fit_results, &best_score,
+                &best_index, rect_idx,
+                rects
+            ](const bool rotated, const Vec2f surf_rotated) -> void {
+                fit_results.push_back(RectFitResult(rect_idx, rotated));
+                RectFitResult& result = fit_results.back();
+
+                GetScore(surf_rotated, rects[rect_idx], &result);
+
+                if (result.score > best_score) {
+                    best_score = result.score;
+                    best_index = fit_results.size() - 1;
+                }
+            };
+
+        add_fit_result(false, surf_dims);
+        if (rects[rect_idx].CanRotate()) {
+            add_fit_result(true, surf_dims.Swapped());
         }
     }
 
-    std::vector<int> best_results;
+    std::vector<int> best_fits;
 
-    for (int i = 0; i < rects.size(); i++) {
-        RectFitResult& result = fit_results[i];
+    for (int fit_idx = 0; fit_idx < fit_results.size(); fit_idx++) {
+        RectFitResult& result = fit_results[fit_idx];
         if (result.score < best_score - kErrorMargin) continue;
-        best_results.push_back(i);
+        best_fits.push_back(fit_idx);
     }
 
-    if (best_results.size() == 0)
+    if (best_fits.size() == 0)
         return -1;
 
-    int result_idx = best_results[std::rand() % best_results.size()];
+    int result_idx = best_fits[std::rand() % best_fits.size()];
     RectFitResult& result = fit_results[result_idx];
     *out_result = result;
 
-    return result_idx;
+    return result.rect_idx;
 }
 
 void GetOffsetAndInvScale(RectFile* file, int idx, Vector2* out_offset, Vector2* out_inv_scale) {

@@ -64,9 +64,12 @@ struct Rect {
 };
 
 struct RectFitResult {
-    float score;
+    RectFitResult(int rect_idx, bool rotated) : rect_idx(rect_idx), rotated(rotated) {};
+
+    int rect_idx;
     Vec2i tiling;
     bool rotated;
+    float score;
 };
 
 struct RectFile {
