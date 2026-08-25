@@ -106,36 +106,31 @@ void GetTiledScore(
 void GetScore(
     const Vec2f &dims_surf,
     const Rect &rect,
-    float* out_score,
-    bool* out_rotated,
-    Vec2i* out_tiling
+    RectFitResult* out_result
 ) {
-    if (rect.CanTileX() || rect.CanTileY()) {
-        GetTiledScore(dims_surf, rect,  out_score, out_tiling);
+    if (rect.CanTile()) {
+        GetTiledScore(dims_surf, rect,  &out_result->score, &out_result->tiling);
 
         if (rect.CanRotate()) {
-            float out_r_score;
-            Vec2i out_r_tiling;
-            GetTiledScore({ dims_surf.y, dims_surf.x },rect, &out_r_score, &out_r_tiling);
+            RectFitResult out_result_2{ .rotated = true };
+            GetTiledScore({ dims_surf.y, dims_surf.x },rect, &out_result_2.score, &out_result_2.tiling);
 
-            if (out_r_score > *out_score) {
-                *out_score = out_r_score;
-                *out_tiling = out_r_tiling;
-                *out_rotated = true;
+            if (out_result_2.score > out_result->score) {
+                *out_result = out_result_2;
             }
         } else {
-            *out_rotated = false;
+            out_result->rotated = false;
         }
 
     } else {
-        *out_tiling = Vec2i(1, 1);
-        *out_rotated =
+        out_result->tiling = Vec2i(1, 1);
+        out_result->rotated =
             (dims_surf.y > dims_surf.x) != (rect.GetHeight() > rect.GetWidth());
 
         Vec2f dims_rect(rect.GetWidth(), rect.GetHeight());
 
-        *out_score = GetBasicScore(
-            *out_rotated ? dims_surf.Swapped() : dims_surf,
+        out_result->score = GetBasicScore(
+            out_result->rotated ? dims_surf.Swapped() : dims_surf,
             dims_rect
         );
     }
@@ -157,7 +152,7 @@ int FitRectToSurface(
         Vec2i tiling;
 
         RectFitResult& result = fit_results[i];
-        GetScore(dims_surf, rects[i], &result.score, &result.rotated, &result.tiling);
+        GetScore(dims_surf, rects[i], &result);
         if (result.score > best_score) {
             best_score = result.score;
             best_index = i;

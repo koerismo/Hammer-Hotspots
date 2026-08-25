@@ -44,6 +44,7 @@ enum class RectFlags_t : unsigned char {
     alt_group         = 0x4,  // If true, this region belongs to the alternate group.
     tile_x            = 0x8,  // Can this region tile horizontally?
     tile_y            = 0x10, // Can this region tile vertically?
+    tile_x_y          = tile_x | tile_y,
 };
 
 // HotspotRect_t
@@ -54,11 +55,12 @@ struct Rect {
     inline int GetWidth() const { return maxs.x - mins.x; }
     inline int GetHeight() const { return maxs.y - mins.y; }
 
-    inline bool CanRotate() const { return flags & static_cast<uint8>(RectFlags_t::enable_rotation); }
-    inline bool CanReflect() const { return flags & static_cast<uint8>(RectFlags_t::enable_reflection); }
-    inline bool CanTileX() const { return flags & static_cast<uint8>(RectFlags_t::tile_x); }
-    inline bool CanTileY() const { return flags & static_cast<uint8>(RectFlags_t::tile_y); }
-    inline bool IsAltGroup() const { return flags & static_cast<uint8>(RectFlags_t::alt_group); }
+    inline bool CanRotate() const { return flags & static_cast<uint8_t>(RectFlags_t::enable_rotation); }
+    inline bool CanReflect() const { return flags & static_cast<uint8_t>(RectFlags_t::enable_reflection); }
+    inline bool CanTile() const { return flags & static_cast<uint8_t>(RectFlags_t::tile_x_y); }
+    inline bool CanTileX() const { return flags & static_cast<uint8_t>(RectFlags_t::tile_x); }
+    inline bool CanTileY() const { return flags & static_cast<uint8_t>(RectFlags_t::tile_y); }
+    inline bool IsAltGroup() const { return flags & static_cast<uint8_t>(RectFlags_t::alt_group); }
 };
 
 struct RectFitResult {
@@ -74,12 +76,13 @@ struct RectFile {
 };
 
 // Uses all available rect flags to calculate a best-case score, orientation, and tiling for the provided rect.
-void GetScore(const Vec2f &dims_surf, const Rect &rect, float *out_score,
-              bool *out_rotated, Vec2i *out_tiling);
+void GetScore(const Vec2f &dims_surf, const Rect &rect,
+              RectFitResult *out_result);
 
 // Finds a random best rect within `kErrorMargin` for `dims_surf` and returns the fitting info.
 int FitRectToSurface(std::vector<Rect> rects, Vec2f &dims_surf,
                      RectFitResult *out_result);
+
 
 void GetOffsetAndInvScale(RectFile *file, int idx, Vector2 *out_offset,
                           Vector2 *out_inv_scale);
