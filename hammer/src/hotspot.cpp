@@ -73,7 +73,7 @@ float GetTiledScoreOnAxis(
     out_tiling->xy[major_axis] = major_axis_count;
     out_tiling->xy[minor_axis] = minor_axis_count;
 
-    Vec2f dims_rect_tiled{dims_rect.x * out_tiling->x, dims_rect.y * out_tiling->y};
+    Vec2f dims_rect_tiled(dims_rect.x * out_tiling->x, dims_rect.y * out_tiling->y);
     return GetBasicScore(dims_surf, dims_rect_tiled);
 }
 
