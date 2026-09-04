@@ -50,10 +50,10 @@ enum class RectFlags_t : unsigned char {
 // HotspotRect_t
 struct Rect {
     uint16 flags;
-    Vec2i mins, maxs;
+    Vec2f mins, maxs;
 
-    inline int GetWidth() const { return maxs.x - mins.x; }
-    inline int GetHeight() const { return maxs.y - mins.y; }
+    inline double GetWidth() const { return maxs.x - mins.x; }
+    inline double GetHeight() const { return maxs.y - mins.y; }
 
     inline bool CanRotate() const { return flags & static_cast<uint8_t>(RectFlags_t::enable_rotation); }
     inline bool CanReflect() const { return flags & static_cast<uint8_t>(RectFlags_t::enable_reflection); }
