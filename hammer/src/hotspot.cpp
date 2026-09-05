@@ -166,18 +166,26 @@ void RectFitter::GetOffsetAndInvScale(RectFile* file, int idx, Vector2* out_offs
 }
 
 // Applies tiling to the given rect and returns its final bounds.
-void RectFitter::GetFinalBounds(Rect& rect, Vec2f& tiling, Rect *out_bounds) {
-    out_bounds->mins = rect.mins;
-    out_bounds->maxs.x = rect.mins.x + rect.GetWidth() * tiling.x;
-    out_bounds->maxs.y = rect.mins.y + rect.GetHeight() * tiling.y;
+void RectFitter::GetFinalBounds(Rect& rect, Vec2f& tiling, double inset, Rect *out_bounds) {
+    out_bounds->mins.x = rect.mins.x + inset;
+    out_bounds->mins.y = rect.mins.y + inset;
+    out_bounds->maxs.x = rect.mins.x + rect.GetWidth() * tiling.x - inset * 2.0;
+    out_bounds->maxs.y = rect.mins.y + rect.GetHeight() * tiling.y - inset * 2.0;
 }
 
 // Returns the pixel coordinate transform for the given rect and image size.
-void RectFitter::GetFinalTransform(Vec2f& tex_size, Rect& rect, Vec2f& tiling, int rotation_dir, Mat3x2& out_matrix) {
-    const double scale_x = (rect.GetWidth() * tiling.x) / tex_size.x;
-    const double scale_y = (rect.GetHeight() * tiling.y) / tex_size.y;
-    const double offset_x = rect.mins.x;
-    const double offset_y = rect.mins.y;
+void RectFitter::GetFinalTransform(
+    Vec2f& tex_size,
+    Rect& rect,
+    Vec2f& tiling,
+    double inset,
+    int rotation,
+    Mat3x2& out_matrix
+) {
+    const double scale_x = (rect.GetWidth() * tiling.x - inset * 2.0) / tex_size.x;
+    const double scale_y = (rect.GetHeight() * tiling.y - inset * 2.0) / tex_size.y;
+    const double offset_x = rect.mins.x + inset;
+    const double offset_y = rect.mins.y + inset;
 
     out_matrix[0][0] = scale_x;
     out_matrix[0][1] = 0.0;
@@ -186,11 +194,11 @@ void RectFitter::GetFinalTransform(Vec2f& tex_size, Rect& rect, Vec2f& tiling, i
     out_matrix[2][0] = offset_x;
     out_matrix[2][1] = offset_y;
 
-    if (rotation_dir) {
+    if (rotation) {
         // Swap x <--> y
         std::swap(out_matrix[0], out_matrix[1]);
         std::swap(out_matrix[2][0], out_matrix[2][1]);
-        if (rotation_dir > 0) {
+        if (rotation > 0) {
             // y = 1 - x
             out_matrix[0][1] *= -1.0;
             out_matrix[2][1] += rect.GetHeight();

@@ -117,32 +117,56 @@ protected:
     float GetBasicScore(const Vec2f &dims_surf, const Vec2f &dims_rect);
 
     // Runs a tiling fit on the given dimensions.
-    float GetTiledScoreOnAxis(const Vec2f &dims_surf, const Vec2f &dims_rect,
-                              uint8_t major_axis, bool use_major,
-                              bool use_minor, Vec2f *out_tiling);
+    float GetTiledScoreOnAxis(
+        const Vec2f &dims_surf,
+        const Vec2f &dims_rect,
+        uint8_t major_axis,
+        bool use_major,
+        bool use_minor,
+        Vec2f *out_tiling);
 
     // Calculates two tiling fits (one for each leading axis) and returns the best one.
-    void GetTiledScore(const Vec2f &dims_surf, const Rect &rect,
-                       float *out_score, Vec2f *out_tiling);
+    void GetTiledScore(
+        const Vec2f &dims_surf,
+        const Rect &rect,
+        float *out_score,
+        Vec2f *out_tiling);
 
 public:
     // Uses all available rect flags to calculate a best-case score,
     // orientation, and tiling for the provided rect.
-    void GetScore(const Vec2f &dims_surf, const Rect &rect,
-                  RectFitResult *out_result);
+    void GetScore(
+        const Vec2f &dims_surf,
+        const Rect &rect,
+        RectFitResult *out_result);
 
     // Finds a random best rect within `kErrorMargin` for `dims_surf` and returns the fitting info.
-    int FitRectToSurface(std::vector<Rect> rects, Vec2f &dims_surf,
-                         RectFitResult *out_result);
+    int FitRectToSurface(
+        std::vector<Rect> rects,
+        Vec2f &dims_surf,
+        RectFitResult *out_result);
 
-    void GetOffsetAndInvScale(RectFile *file, int idx, Vector2 *out_offset,
-                              Vector2 *out_inv_scale);
+    void GetOffsetAndInvScale(
+        RectFile *file,
+        int idx,
+        Vector2 *out_offset,
+        Vector2 *out_inv_scale);
 
     // Applies tiling to the given rect and returns its final bounds.
-    void GetFinalBounds(Rect& rect, Vec2f& tiling, Rect *out_bounds);
+    void GetFinalBounds(
+        Rect& rect,
+        Vec2f& tiling,
+        double inset,
+        Rect *out_bounds);
 
     // Returns the pixel coordinate transformation for the given rect and image size.
-    void GetFinalTransform(Vec2f& tex_size, Rect& rect, Vec2f& tiling, int rotation_dir, Mat3x2& out_matrix);
+    void GetFinalTransform(
+        Vec2f& tex_size,
+        Rect& rect,
+        Vec2f& tiling,
+        double inset,
+        int rotation,
+        Mat3x2& out_matrix);
 };
 
 } // namespace HotSpot
