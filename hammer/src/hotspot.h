@@ -39,7 +39,19 @@ union Vec2f {
 
 // Defines a matrix with 2 columns and 3 rows,
 // stored as [column][row] coordinates.
-using Mat3x2 = double[3][2];
+union Mat3x2 {
+    double values[6];
+    struct {
+        double x[2];
+        double y[2];
+        double z[2];
+    };
+
+    void Apply(const Vec2f &input, Vec2f &output) {
+        output.x = input.x * x[0] + input.y * y[0] + z[0];
+        output.y = input.x * x[1] + input.y * y[1] + z[1];
+    }
+};
 
 // HotspotRectFlags_t
 enum class RectFlags_t : unsigned char {
@@ -85,15 +97,13 @@ struct RectFile {
 struct WeightConfig {
     // Aspect scores are raised to the power of ~6.0 when either dimension of the rect approaches 0
     float pow_cardinality = 6.0;
-    // Scale differences are raised to the power of 3.0
-    float pow_scale_diff = 3.0;
     
     // perfect aspect = 100.0, worst-case approaches 0.0
     float weight_dot = 100.0;
     // perfect scale = 0.0,
-    // 2x smaller/larger = 1^kPowScaleDiff * (-5.0) = -5.0,
-    // 3x smaller/larger = 2^kPowScaleDiff * (-5.0) = -20.0
-    float weight_scale = -5.0;
+    // 2x smaller/larger = 1 * (-10.0) = -10.0,
+    // 3x smaller/larger = 2 * (-10.0) = -20.0
+    float weight_scale = -20.0;
     // 1x1 tiling = 0.0, 12x12 tiling = -0.144
     float weight_tiling = -0.001;
     // The error margin within which matches can be randomized.

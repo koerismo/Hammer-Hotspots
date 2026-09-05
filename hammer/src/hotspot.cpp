@@ -4,7 +4,6 @@
 #include <cmath>
 #include <cstdlib>
 #include <numbers>
-#include <utility>
 
 namespace HotSpot {
 
@@ -28,7 +27,7 @@ float RectFitter::GetBasicScore(const Vec2f &dims_surf, const Vec2f &dims_rect) 
 
     return (
         std::pow(dot_prod, cardinality) * config_.weight_dot +
-        std::pow(scale_diff, config_.pow_scale_diff) * config_.weight_scale
+        scale_diff * config_.weight_scale
     );
 }
 
@@ -180,34 +179,53 @@ void RectFitter::GetFinalTransform(
     Vec2f& tiling,
     double inset,
     int rotation,
-    Mat3x2& out_matrix
+    Mat3x2& m
 ) {
+    // Calculate bounds
     const double scale_x = (rect.GetWidth() * tiling.x - inset * 2.0) / tex_size.x;
     const double scale_y = (rect.GetHeight() * tiling.y - inset * 2.0) / tex_size.y;
     const double offset_x = rect.mins.x + inset;
     const double offset_y = rect.mins.y + inset;
 
-    out_matrix[0][0] = scale_x;
-    out_matrix[0][1] = 0.0;
-    out_matrix[1][0] = 0.0;
-    out_matrix[1][1] = scale_y;
-    out_matrix[2][0] = offset_x;
-    out_matrix[2][1] = offset_y;
-
-    if (rotation) {
-        // Swap x <--> y
-        std::swap(out_matrix[0], out_matrix[1]);
-        std::swap(out_matrix[2][0], out_matrix[2][1]);
-        if (rotation > 0) {
-            // y = 1 - x
-            out_matrix[0][1] *= -1.0;
-            out_matrix[2][1] += rect.GetHeight();
-        } else {
-            // x = 1 - y
-            out_matrix[1][0] *= -1.0;
-            out_matrix[2][0] += rect.GetWidth();
+    // Rotate
+    switch (rotation) {
+        case -1: { // Clockwise 90
+            m.x[0] =  0; m.x[1] = 1;
+            m.y[0] = -1; m.y[1] = 0;
+            m.z[0] =  1; m.z[1] = 0;
+            break;
+        }
+        case 1: { // Counterclockwise 90
+            m.x[0] = 0; m.x[1] = -1;
+            m.y[0] = 1; m.y[1] =  0;
+            m.z[0] = 0; m.z[1] =  1;
+            break;
+        }
+        case 2: { // 180
+            m.x[0] = -1; m.x[1] =  0;
+            m.y[0] =  0; m.y[1] = -1;
+            m.z[0] =  1; m.z[1] =  1;
+            break;
+        }
+        default: {
+            m.x[0] = 1;  m.x[1] = 0;
+            m.y[0] = 0;  m.y[1] = 1;
+            m.z[0] = 0;  m.z[1] = 0;
         }
     }
+
+    // Scale
+    m.x[0] *= scale_x;
+    m.y[0] *= scale_x;
+    m.z[0] *= scale_x;
+
+    m.x[1] *= scale_y;
+    m.y[1] *= scale_y;
+    m.z[1] *= scale_y;
+
+    // Translate
+    m.z[0] += offset_x;
+    m.z[1] += offset_y;
 }
 
 } // namespace HotSpot
