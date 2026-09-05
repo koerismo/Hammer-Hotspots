@@ -138,6 +138,8 @@ public:
     void GetOffsetAndInvScale(RectFile *file, int idx, Vector2 *out_offset,
                               Vector2 *out_inv_scale);
 
+    // Applies tiling to the given rect and returns its final bounds.
+    void GetFinalBounds(Rect& rect, Vec2f& tiling, Rect *out_bounds);
 };
 
 } // namespace HotSpot

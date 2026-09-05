@@ -91,22 +91,24 @@ void RectFitter::GetTrimScore(
     float* out_score,
     Vec2f* out_tiling
 ) {
-    const float rect_width = rect.GetWidth();
-    const float rect_height = rect.GetHeight();
+    const double rect_width = rect.GetWidth();
+    const double rect_height = rect.GetHeight();
 
     // We already check the validity of this surface when we call this method,
     // so it doesn't need to be checked here.
 
     if (rect_width) {
         const float scale = dims_surf.x / rect_width;
-        out_tiling->y = dims_surf.y / (rect_height * scale);
+        out_tiling->x = 1;
+        out_tiling->y = dims_surf.y / scale;
+        *out_score = GetBasicScore(dims_surf, Vec2f(rect_width, out_tiling->y));
     } else {
         const float scale = dims_surf.y / rect_height;
-        out_tiling->x = dims_surf.x / (rect_width * scale);
+        out_tiling->x = dims_surf.x / scale;
+        out_tiling->y = 1;
+        *out_score = GetBasicScore(dims_surf, Vec2f(out_tiling->x, rect_height));
     }
 
-    *out_score = GetBasicScore(dims_surf, Vec2f(rect_width * out_tiling->x,
-                                                rect_height * out_tiling->y));
 }
 
 // Uses tiling (when applicable) to calculate a best-case score for the provided rect.
@@ -197,6 +199,19 @@ void RectFitter::GetOffsetAndInvScale(RectFile* file, int idx, Vector2* out_offs
     out_inv_scale->x = static_cast<float>(file->tex_size.x) / static_cast<float>(rect->GetWidth());
     out_inv_scale->y = static_cast<float>(file->tex_size.y) / static_cast<float>(rect->GetHeight());
     return;
+}
+
+// Applies tiling to the given rect and returns its final bounds.
+void RectFitter::GetFinalBounds(Rect& rect, Vec2f& tiling, Rect *out_bounds) {
+    out_bounds->mins = rect.mins;
+
+    out_bounds->maxs.x = rect.mins.x == rect.maxs.x
+        ? rect.mins.x + tiling.x
+        : rect.mins.x + rect.GetWidth() * tiling.x;
+    
+    out_bounds->maxs.y = rect.mins.y == rect.maxs.y
+        ? rect.mins.y + tiling.y
+        : rect.mins.y + rect.GetHeight() * tiling.y;
 }
 
 } // namespace HotSpot
