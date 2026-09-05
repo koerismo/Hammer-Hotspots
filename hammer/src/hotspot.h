@@ -67,7 +67,7 @@ struct RectFitResult {
     RectFitResult(int rect_idx, bool rotated) : rect_idx(rect_idx), rotated(rotated) {};
 
     int rect_idx;
-    Vec2i tiling;
+    Vec2f tiling;
     bool rotated;
     float score;
 };
@@ -78,17 +78,66 @@ struct RectFile {
     std::vector<Rect> rects;
 };
 
-// Uses all available rect flags to calculate a best-case score, orientation, and tiling for the provided rect.
-void GetScore(const Vec2f &dims_surf, const Rect &rect,
-              RectFitResult *out_result);
+struct WeightConfig {
+    // Aspect scores are raised to the power of ~6.0 when either dimension of the rect approaches 0
+    float pow_cardinality = 6.0;
+    // Scale differences are raised to the power of 3.0
+    float pow_scale_diff = 3.0;
+    
+    // perfect aspect = 100.0, worst-case approaches 0.0
+    float weight_dot = 100.0;
+    // perfect scale = 0.0,
+    // 2x smaller/larger = 1^kPowScaleDiff * (-5.0) = -5.0,
+    // 3x smaller/larger = 2^kPowScaleDiff * (-5.0) = -20.0
+    float weight_scale = -5.0;
+    // 1x1 tiling = 0.0, 12x12 tiling = -0.144
+    float weight_tiling = -0.001;
+    // The error margin within which matches can be randomized.
+    float error_margin = 0.1;
+};
 
-// Finds a random best rect within `kErrorMargin` for `dims_surf` and returns the fitting info.
-int FitRectToSurface(std::vector<Rect> rects, Vec2f &dims_surf,
-                     RectFitResult *out_result);
+class RectFitter {
+public:
+    RectFitter() {}
+    RectFitter(WeightConfig config) : config_(config) {}
 
+public:
+    WeightConfig config_;
 
-void GetOffsetAndInvScale(RectFile *file, int idx, Vector2 *out_offset,
-                          Vector2 *out_inv_scale);
+protected:
+    // Biases dot comparisons towards stricter results the closer they are to a cardinal axis.
+    // Returns a value from `1.0` (on diagonals) to `max_v` (on cardinals)
+    float GetCardinalityFactor(const Vec2f &nrm_dir, float max_v);
 
+    // Returns the score from attempting to stretch and scale the given rect to the given surface.
+    float GetBasicScore(const Vec2f &dims_surf, const Vec2f &dims_rect);
+
+    // Runs a tiling fit on the given dimensions.
+    float GetTiledScoreOnAxis(const Vec2f &dims_surf, const Vec2f &dims_rect,
+                              uint8_t major_axis, bool use_major,
+                              bool use_minor, Vec2f *out_tiling);
+
+    // Calculates two tiling fits (one for each leading axis) and returns the best one.
+    void GetTiledScore(const Vec2f &dims_surf, const Rect &rect,
+                       float *out_score, Vec2f *out_tiling);
+
+    // Scales the given rect on one axis and tiles it on the other to apply as a trim.
+    void GetTrimScore(const Vec2f &dims_surf, const Rect &rect, float *out_score,
+                      Vec2f *out_tiling);
+
+public:
+    // Uses all available rect flags to calculate a best-case score,
+    // orientation, and tiling for the provided rect.
+    void GetScore(const Vec2f &dims_surf, const Rect &rect,
+                  RectFitResult *out_result);
+
+    // Finds a random best rect within `kErrorMargin` for `dims_surf` and returns the fitting info.
+    int FitRectToSurface(std::vector<Rect> rects, Vec2f &dims_surf,
+                         RectFitResult *out_result);
+
+    void GetOffsetAndInvScale(RectFile *file, int idx, Vector2 *out_offset,
+                              Vector2 *out_inv_scale);
+
+};
 
 } // namespace HotSpot

@@ -8,55 +8,37 @@
 namespace HotSpot {
 
 
-// Aspect scores are raised to the power of ~6.0 when either dimension of the rect approaches 0
-const float kPowCardinality = 6.0;
-// Scale differences are raised to the power of 3.0
-const float kPowScaleDiff = 3.0;
-
-
-// perfect aspect = 100.0, worst-case approaches 0.0
-const float kWeightDot = 100.0f;
-// perfect scale = 0.0,
-// 2x smaller/larger = 1^kPowScaleDiff * -2.0 = -2.0,
-// 3x smaller/larger = 2^kPowScaleDiff * -2.0 = -16.0
-const float kWeightScale = -2.0f;
-// 1x1 tiling = 0.0, 12x12 tiling = -0.144
-const float kWeightTiling = -0.001f;
-// The error margin within which matches can be randomized.
-const float kErrorMargin = 0.1f;
-
-
 // Biases dot comparisons towards stricter results the closer they are to a cardinal axis.
 // Returns a value from `1.0` (on diagonals) to `max_v` (on cardinals)
-float GetCardinalityFactor(const Vec2f &nrm_dir, float max_v) {
+float RectFitter::GetCardinalityFactor(const Vec2f &nrm_dir, float max_v) {
     float basis = std::abs(nrm_dir.x) + std::abs(nrm_dir.y);
     return std::max(1.0, max_v - (basis - 1.0) * (max_v - 1.0) / std::numbers::sqrt2);
 }
 
 // Returns the score from attempting to stretch and scale the given rect to the given surface.
-float GetBasicScore(const Vec2f &dims_surf, const Vec2f &dims_rect) {
+float RectFitter::GetBasicScore(const Vec2f &dims_surf, const Vec2f &dims_rect) {
     float len_surf, len_rect;
     Vec2f dir_surf = dims_surf.Normalized(&len_surf);
     Vec2f dir_rect = dims_rect.Normalized(&len_rect);
 
     float dot_prod = dir_surf.Dot(dir_rect);
     float scale_diff = std::abs(std::log2(len_rect) - std::log2(len_surf));
-    float cardinality = GetCardinalityFactor(dir_rect, kPowCardinality);
+    float cardinality = GetCardinalityFactor(dir_rect, config_.pow_cardinality);
 
     return (
-        std::pow(dot_prod, cardinality) * kWeightDot +
-        std::pow(scale_diff, kPowScaleDiff) * kWeightScale
+        std::pow(dot_prod, cardinality) * config_.weight_dot +
+        std::pow(scale_diff, config_.pow_scale_diff) * config_.weight_scale
     );
 }
 
 // Runs a tiling fit on the given dimensions.
-float GetTiledScoreOnAxis(
+float RectFitter::GetTiledScoreOnAxis(
     const Vec2f &dims_surf,
     const Vec2f &dims_rect,
     uint8_t major_axis,
     bool use_major,
     bool use_minor,
-    Vec2i* out_tiling
+    Vec2f* out_tiling
 ) {
     const uint8_t minor_axis = 1 - major_axis;    
 
@@ -78,11 +60,11 @@ float GetTiledScoreOnAxis(
 }
 
 // Calculates two tiling fits (one for each leading axis) and returns the best one.
-void GetTiledScore(
+void RectFitter::GetTiledScore(
     const Vec2f &dims_surf,
     const Rect &rect,
     float* out_score,
-    Vec2i* out_tiling
+    Vec2f* out_tiling
 ) {
     Vec2f dims_rect(rect.GetWidth(), rect.GetHeight());
 
@@ -93,7 +75,7 @@ void GetTiledScore(
     uint8_t major_axis =
         use_minor_axis ? (dims_surf.y > dims_surf.x) : can_tile_y;
 
-    Vec2i tiling_1, tiling_2;
+    Vec2f tiling_1, tiling_2;
     float score_1, score_2;
 
     score_1 = GetTiledScoreOnAxis(dims_surf, dims_rect, major_axis, true, use_minor_axis, &tiling_1);
@@ -102,22 +84,60 @@ void GetTiledScore(
     *out_tiling = score_2 > score_1 ? tiling_2 : tiling_1;
 }
 
+// Scales the given rect on one axis and tiles it on the other to apply as a trim.
+void RectFitter::GetTrimScore(
+    const Vec2f &dims_surf,
+    const Rect &rect,
+    float* out_score,
+    Vec2f* out_tiling
+) {
+    const float rect_width = rect.GetWidth();
+    const float rect_height = rect.GetHeight();
+
+    // We already check the validity of this surface when we call this method,
+    // so it doesn't need to be checked here.
+
+    if (rect_width) {
+        const float scale = dims_surf.x / rect_width;
+        out_tiling->y = dims_surf.y / (rect_height * scale);
+    } else {
+        const float scale = dims_surf.y / rect_height;
+        out_tiling->x = dims_surf.x / (rect_width * scale);
+    }
+
+    *out_score = GetBasicScore(dims_surf, Vec2f(rect_width * out_tiling->x,
+                                                rect_height * out_tiling->y));
+}
+
 // Uses tiling (when applicable) to calculate a best-case score for the provided rect.
-void GetScore(
+void RectFitter::GetScore(
     const Vec2f &dims_surf,
     const Rect &rect,
     RectFitResult* out_result
 ) {
-    if (rect.CanTile()) {
+    const double width = rect.GetWidth();
+    const double height = rect.GetHeight();
+
+    // Tiled texture
+    if (rect.CanTile() && width && height) {
         GetTiledScore(dims_surf, rect,  &out_result->score, &out_result->tiling);
-    } else {
-        out_result->tiling = Vec2i(1, 1);
+    }
+
+    // Trim texture (fit on one dimension and slide on the other)
+    else if (
+            (rect.CanTileX() && !width && height) ||
+            (rect.CanTileY() && !height && width)) {
+        GetTrimScore(dims_surf, rect, &out_result->score, &out_result->tiling);
+    }
+
+    // Standard texture
+    else {
+        out_result->tiling = Vec2f(1, 1);
         out_result->score = GetBasicScore(dims_surf, Vec2f(rect.GetWidth(), rect.GetHeight()));
     }
 }
 
-// Finds a random best rect within `kErrorMargin` for `dims_surf` and returns the fitting info.
-int FitRectToSurface(
+int RectFitter::FitRectToSurface(
     std::vector<Rect> rects,
     Vec2f &surf_dims,
     RectFitResult* out_result
@@ -133,7 +153,7 @@ int FitRectToSurface(
         const auto add_fit_result = [
                 &fit_results, &best_score,
                 &best_index, rect_idx,
-                rects
+                rects, this
             ](const bool rotated, const Vec2f surf_rotated) -> void {
                 fit_results.push_back(RectFitResult(rect_idx, rotated));
                 RectFitResult& result = fit_results.back();
@@ -156,7 +176,7 @@ int FitRectToSurface(
 
     for (int fit_idx = 0; fit_idx < fit_results.size(); fit_idx++) {
         RectFitResult& result = fit_results[fit_idx];
-        if (result.score < best_score - kErrorMargin) continue;
+        if (result.score < best_score - config_.error_margin) continue;
         best_fits.push_back(fit_idx);
     }
 
@@ -170,7 +190,7 @@ int FitRectToSurface(
     return result.rect_idx;
 }
 
-void GetOffsetAndInvScale(RectFile* file, int idx, Vector2* out_offset, Vector2* out_inv_scale) {
+void RectFitter::GetOffsetAndInvScale(RectFile* file, int idx, Vector2* out_offset, Vector2* out_inv_scale) {
     Rect* rect = &file->rects[idx];
     out_offset->x =  static_cast<float>(rect->mins.x) / static_cast<float>(file->tex_size.x);
     out_offset->y =  static_cast<float>(rect->mins.y) / static_cast<float>(file->tex_size.y);
