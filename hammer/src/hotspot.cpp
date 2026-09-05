@@ -23,12 +23,19 @@ float RectFitter::GetBasicScore(const Vec2f &dims_surf, const Vec2f &dims_rect) 
     Vec2f dir_rect = dims_rect.Normalized(&len_rect);
 
     float dot_prod = dir_surf.Dot(dir_rect);
-    float scale_diff = std::abs(std::log2(len_rect) - std::log2(len_surf));
     float cardinality = GetCardinalityFactor(dir_rect, config_.pow_cardinality);
+    float dot_weight = std::pow(dot_prod, cardinality);
+
+    float scale_weight = 0.0;
+    if (len_rect > kFloatEpsilon && len_surf > kFloatEpsilon) {
+        scale_weight = len_rect > len_surf
+            ? len_surf / len_rect
+            : len_rect / len_surf;
+    }
 
     return (
-        std::pow(dot_prod, cardinality) * config_.weight_dot +
-        scale_diff * config_.weight_scale
+        dot_weight * config_.weight_dot +
+        scale_weight * config_.weight_scale
     );
 }
 
@@ -108,33 +115,43 @@ int RectFitter::FitRectToSurface(
     Vec2f &surf_dims,
     RectFitResult* out_result
 ) {
+    int fit_count = rects.size();
+    for (int i=0; i<rects.size(); i++) {
+        if (rects[i].CanRotate()) fit_count ++;
+    }
+
     std::vector<RectFitResult> fit_results;
-    fit_results.reserve(rects.size());
-    
+    fit_results.reserve(fit_count);
+
     float best_score = -kFloatInf;
     int best_index = -1;
 
+    auto PushFit = [&fit_results](int rect_idx, bool rotated) -> RectFitResult& {
+        fit_results.push_back(RectFitResult(rect_idx, rotated));
+        return fit_results.back();
+    };
+
     for (int rect_idx = 0; rect_idx < rects.size(); rect_idx++) {
+        // Initial fit
+        {
+            RectFitResult& result = PushFit(rect_idx, false);
+            GetScore(surf_dims, rects[rect_idx], &result);
+    
+            if (result.score > best_score) {
+                best_score = result.score;
+                best_index = fit_results.size() - 1;
+            }
+        }
 
-        const auto add_fit_result = [
-                &fit_results, &best_score,
-                &best_index, rect_idx,
-                rects, this
-            ](const bool rotated, const Vec2f surf_rotated) -> void {
-                fit_results.push_back(RectFitResult(rect_idx, rotated));
-                RectFitResult& result = fit_results.back();
-
-                GetScore(surf_rotated, rects[rect_idx], &result);
-
-                if (result.score > best_score) {
-                    best_score = result.score;
-                    best_index = fit_results.size() - 1;
-                }
-            };
-
-        add_fit_result(false, surf_dims);
+        // Rotated fit
         if (rects[rect_idx].CanRotate()) {
-            add_fit_result(true, surf_dims.Swapped());
+            RectFitResult& result = PushFit(rect_idx, true);
+            GetScore(surf_dims.Swapped(), rects[rect_idx], &result);
+
+            if (result.score > best_score) {
+                best_score = result.score;
+                best_index = fit_results.size() - 1;
+            }
         }
     }
 

@@ -8,6 +8,7 @@
 namespace HotSpot {
 
 const float kFloatInf = std::numeric_limits<float>::infinity();
+const float kFloatEpsilon = std::numeric_limits<float>::epsilon();
 
 union Vec2i {
     Vec2i() : x(0), y(0) {};
@@ -97,13 +98,12 @@ struct RectFile {
 struct WeightConfig {
     // Aspect scores are raised to the power of ~6.0 when either dimension of the rect approaches 0
     float pow_cardinality = 6.0;
-    
     // perfect aspect = 100.0, worst-case approaches 0.0
     float weight_dot = 100.0;
-    // perfect scale = 0.0,
-    // 2x smaller/larger = 1 * (-10.0) = -10.0,
-    // 3x smaller/larger = 2 * (-10.0) = -20.0
-    float weight_scale = -20.0;
+    // perfect scale = 40.0,
+    // 2x smaller/larger = 0.5 * (70.0) = 35.0,
+    // 4x smaller/larger = 0.25 * (70.0) = 17.5
+    float weight_scale = 70.0;
     // 1x1 tiling = 0.0, 12x12 tiling = -0.144
     float weight_tiling = -0.001;
     // The error margin within which matches can be randomized.
