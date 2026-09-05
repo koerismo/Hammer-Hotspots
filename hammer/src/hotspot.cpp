@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <numbers>
+#include <utility>
 
 namespace HotSpot {
 
@@ -187,31 +188,19 @@ void RectFitter::GetFinalTransform(
     const double offset_x = rect.mins.x + inset;
     const double offset_y = rect.mins.y + inset;
 
+    // Create identity matrix
+    m.x[0] = 1;  m.x[1] = 0;
+    m.y[0] = 0;  m.y[1] = 1;
+    m.z[0] = 0;  m.z[1] = 0;
+
     // Rotate
-    switch (rotation) {
-        case -1: { // Clockwise 90
-            m.x[0] =  0; m.x[1] = 1;
-            m.y[0] = -1; m.y[1] = 0;
-            m.z[0] =  1; m.z[1] = 0;
-            break;
-        }
-        case 1: { // Counterclockwise 90
-            m.x[0] = 0; m.x[1] = -1;
-            m.y[0] = 1; m.y[1] =  0;
-            m.z[0] = 0; m.z[1] =  1;
-            break;
-        }
-        case 2: { // 180
-            m.x[0] = -1; m.x[1] =  0;
-            m.y[0] =  0; m.y[1] = -1;
-            m.z[0] =  1; m.z[1] =  1;
-            break;
-        }
-        default: {
-            m.x[0] = 1;  m.x[1] = 0;
-            m.y[0] = 0;  m.y[1] = 1;
-            m.z[0] = 0;  m.z[1] = 0;
-        }
+    if (rotation == 2) {
+        m.x[0] = -1; m.y[1] = -1;
+        m.z[0] =  1; m.z[1] =  1;
+    } else if (rotation) {
+        std::swap(m.x, m.y);
+        if (rotation > 0)  { m.x[1] = -1; m.z[1] = 1; }
+        else               { m.y[0] = -1; m.z[0] = 1; }
     }
 
     // Scale

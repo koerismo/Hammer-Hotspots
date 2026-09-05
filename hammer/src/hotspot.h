@@ -47,7 +47,7 @@ union Mat3x2 {
         double z[2];
     };
 
-    void Apply(const Vec2f &input, Vec2f &output) {
+    void Multiply(const Vec2f &input, Vec2f &output) {
         output.x = input.x * x[0] + input.y * y[0] + z[0];
         output.y = input.x * x[1] + input.y * y[1] + z[1];
     }
