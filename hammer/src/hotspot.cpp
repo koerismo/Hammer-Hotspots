@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <numbers>
+#include <utility>
 
 namespace HotSpot {
 
@@ -84,33 +85,6 @@ void RectFitter::GetTiledScore(
     *out_tiling = score_2 > score_1 ? tiling_2 : tiling_1;
 }
 
-// Scales the given rect on one axis and tiles it on the other to apply as a trim.
-void RectFitter::GetTrimScore(
-    const Vec2f &dims_surf,
-    const Rect &rect,
-    float* out_score,
-    Vec2f* out_tiling
-) {
-    const double rect_width = rect.GetWidth();
-    const double rect_height = rect.GetHeight();
-
-    // We already check the validity of this surface when we call this method,
-    // so it doesn't need to be checked here.
-
-    if (rect_width) {
-        const float scale = dims_surf.x / rect_width;
-        out_tiling->x = 1;
-        out_tiling->y = dims_surf.y / scale;
-        *out_score = GetBasicScore(dims_surf, Vec2f(rect_width, out_tiling->y));
-    } else {
-        const float scale = dims_surf.y / rect_height;
-        out_tiling->x = dims_surf.x / scale;
-        out_tiling->y = 1;
-        *out_score = GetBasicScore(dims_surf, Vec2f(out_tiling->x, rect_height));
-    }
-
-}
-
 // Uses tiling (when applicable) to calculate a best-case score for the provided rect.
 void RectFitter::GetScore(
     const Vec2f &dims_surf,
@@ -123,17 +97,7 @@ void RectFitter::GetScore(
     // Tiled texture
     if (rect.CanTile() && width && height) {
         GetTiledScore(dims_surf, rect,  &out_result->score, &out_result->tiling);
-    }
-
-    // Trim texture (fit on one dimension and slide on the other)
-    else if (
-            (rect.CanTileX() && !width && height) ||
-            (rect.CanTileY() && !height && width)) {
-        GetTrimScore(dims_surf, rect, &out_result->score, &out_result->tiling);
-    }
-
-    // Standard texture
-    else {
+    } else {
         out_result->tiling = Vec2f(1, 1);
         out_result->score = GetBasicScore(dims_surf, Vec2f(rect.GetWidth(), rect.GetHeight()));
     }
@@ -204,14 +168,38 @@ void RectFitter::GetOffsetAndInvScale(RectFile* file, int idx, Vector2* out_offs
 // Applies tiling to the given rect and returns its final bounds.
 void RectFitter::GetFinalBounds(Rect& rect, Vec2f& tiling, Rect *out_bounds) {
     out_bounds->mins = rect.mins;
+    out_bounds->maxs.x = rect.mins.x + rect.GetWidth() * tiling.x;
+    out_bounds->maxs.y = rect.mins.y + rect.GetHeight() * tiling.y;
+}
 
-    out_bounds->maxs.x = rect.mins.x == rect.maxs.x
-        ? rect.mins.x + tiling.x
-        : rect.mins.x + rect.GetWidth() * tiling.x;
-    
-    out_bounds->maxs.y = rect.mins.y == rect.maxs.y
-        ? rect.mins.y + tiling.y
-        : rect.mins.y + rect.GetHeight() * tiling.y;
+// Returns the pixel coordinate transform for the given rect and image size.
+void RectFitter::GetFinalTransform(Vec2f& tex_size, Rect& rect, Vec2f& tiling, int rotation_dir, Mat3x2& out_matrix) {
+    const double scale_x = (rect.GetWidth() * tiling.x) / tex_size.x;
+    const double scale_y = (rect.GetHeight() * tiling.y) / tex_size.y;
+    const double offset_x = rect.mins.x;
+    const double offset_y = rect.mins.y;
+
+    out_matrix[0][0] = scale_x;
+    out_matrix[0][1] = 0.0;
+    out_matrix[1][0] = 0.0;
+    out_matrix[1][1] = scale_y;
+    out_matrix[2][0] = offset_x;
+    out_matrix[2][1] = offset_y;
+
+    if (rotation_dir) {
+        // Swap x <--> y
+        std::swap(out_matrix[0], out_matrix[1]);
+        std::swap(out_matrix[2][0], out_matrix[2][1]);
+        if (rotation_dir > 0) {
+            // y = 1 - x
+            out_matrix[0][1] *= -1.0;
+            out_matrix[2][1] += rect.GetHeight();
+        } else {
+            // x = 1 - y
+            out_matrix[1][0] *= -1.0;
+            out_matrix[2][0] += rect.GetWidth();
+        }
+    }
 }
 
 } // namespace HotSpot

@@ -37,6 +37,10 @@ union Vec2f {
     struct { double x, y; };
 };
 
+// Defines a matrix with 2 columns and 3 rows,
+// stored as [column][row] coordinates.
+using Mat3x2 = double[3][2];
+
 // HotspotRectFlags_t
 enum class RectFlags_t : unsigned char {
     enable_rotation   = 0x1,  // Can this region be randomly rotated?
@@ -121,10 +125,6 @@ protected:
     void GetTiledScore(const Vec2f &dims_surf, const Rect &rect,
                        float *out_score, Vec2f *out_tiling);
 
-    // Scales the given rect on one axis and tiles it on the other to apply as a trim.
-    void GetTrimScore(const Vec2f &dims_surf, const Rect &rect, float *out_score,
-                      Vec2f *out_tiling);
-
 public:
     // Uses all available rect flags to calculate a best-case score,
     // orientation, and tiling for the provided rect.
@@ -140,6 +140,9 @@ public:
 
     // Applies tiling to the given rect and returns its final bounds.
     void GetFinalBounds(Rect& rect, Vec2f& tiling, Rect *out_bounds);
+
+    // Returns the pixel coordinate transformation for the given rect and image size.
+    void GetFinalTransform(Vec2f& tex_size, Rect& rect, Vec2f& tiling, int rotation_dir, Mat3x2& out_matrix);
 };
 
 } // namespace HotSpot
