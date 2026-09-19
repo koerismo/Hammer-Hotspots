@@ -84,7 +84,7 @@ struct RectFitResult {
     RectFitResult(int rect_idx, bool rotated) : rect_idx(rect_idx), rotated(rotated) {};
 
     int rect_idx;
-    Vec2f tiling;
+    Vec2i tiling;
     bool rotated;
     float score;
 };
@@ -100,10 +100,10 @@ struct WeightConfig {
     float pow_cardinality = 6.0;
     // perfect aspect = 100.0, worst-case approaches 0.0
     float weight_dot = 100.0;
-    // perfect scale = 40.0,
-    // 2x smaller/larger = 0.5 * (70.0) = 35.0,
-    // 4x smaller/larger = 0.25 * (70.0) = 17.5
-    float weight_scale = 70.0;
+    // perfect scale = 50.0,
+    // 2x smaller/larger = 0.5 * (50.0) = 25.0,
+    // 4x smaller/larger = 0.25 * (50.0) = 12.5
+    float weight_scale = 50.0;
     // 1x1 tiling = 0.0, 12x12 tiling = -0.144
     float weight_tiling = -0.001;
     // The error margin within which matches can be randomized.
@@ -133,14 +133,14 @@ protected:
         uint8_t major_axis,
         bool use_major,
         bool use_minor,
-        Vec2f *out_tiling);
+        Vec2i *out_tiling);
 
     // Calculates two tiling fits (one for each leading axis) and returns the best one.
     void GetTiledScore(
         const Vec2f &dims_surf,
         const Rect &rect,
         float *out_score,
-        Vec2f *out_tiling);
+        Vec2i *out_tiling);
 
 public:
     // Uses all available rect flags to calculate a best-case score,
@@ -165,7 +165,7 @@ public:
     // Applies tiling to the given rect and returns its final bounds.
     void GetFinalBounds(
         Rect& rect,
-        Vec2f& tiling,
+        Vec2i& tiling,
         double inset,
         Rect *out_bounds);
 
@@ -173,7 +173,7 @@ public:
     void GetFinalTransform(
         Vec2f& tex_size,
         Rect& rect,
-        Vec2f& tiling,
+        Vec2i& tiling,
         double inset,
         int rotation,
         Mat3x2& out_matrix);

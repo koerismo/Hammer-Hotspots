@@ -46,7 +46,7 @@ float RectFitter::GetTiledScoreOnAxis(
     uint8_t major_axis,
     bool use_major,
     bool use_minor,
-    Vec2f* out_tiling
+    Vec2i* out_tiling
 ) {
     const uint8_t minor_axis = 1 - major_axis;    
 
@@ -72,7 +72,7 @@ void RectFitter::GetTiledScore(
     const Vec2f &dims_surf,
     const Rect &rect,
     float* out_score,
-    Vec2f* out_tiling
+    Vec2i* out_tiling
 ) {
     Vec2f dims_rect(rect.GetWidth(), rect.GetHeight());
 
@@ -83,7 +83,7 @@ void RectFitter::GetTiledScore(
     uint8_t major_axis =
         use_minor_axis ? (dims_surf.y > dims_surf.x) : can_tile_y;
 
-    Vec2f tiling_1, tiling_2;
+    Vec2i tiling_1, tiling_2;
     float score_1, score_2;
 
     score_1 = GetTiledScoreOnAxis(dims_surf, dims_rect, major_axis, true, use_minor_axis, &tiling_1);
@@ -105,7 +105,7 @@ void RectFitter::GetScore(
     if (rect.CanTile() && width && height) {
         GetTiledScore(dims_surf, rect,  &out_result->score, &out_result->tiling);
     } else {
-        out_result->tiling = Vec2f(1, 1);
+        out_result->tiling = Vec2i(1, 1);
         out_result->score = GetBasicScore(dims_surf, Vec2f(rect.GetWidth(), rect.GetHeight()));
     }
 }
@@ -183,7 +183,7 @@ void RectFitter::GetOffsetAndInvScale(RectFile* file, int idx, Vector2* out_offs
 }
 
 // Applies tiling to the given rect and returns its final bounds.
-void RectFitter::GetFinalBounds(Rect& rect, Vec2f& tiling, double inset, Rect *out_bounds) {
+void RectFitter::GetFinalBounds(Rect& rect, Vec2i& tiling, double inset, Rect *out_bounds) {
     out_bounds->mins.x = rect.mins.x + inset;
     out_bounds->mins.y = rect.mins.y + inset;
     out_bounds->maxs.x = rect.mins.x + rect.GetWidth() * tiling.x - inset * 2.0;
@@ -194,7 +194,7 @@ void RectFitter::GetFinalBounds(Rect& rect, Vec2f& tiling, double inset, Rect *o
 void RectFitter::GetFinalTransform(
     Vec2f& tex_size,
     Rect& rect,
-    Vec2f& tiling,
+    Vec2i& tiling,
     double inset,
     int rotation,
     Mat3x2& m
