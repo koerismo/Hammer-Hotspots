@@ -63,8 +63,9 @@ float RectFitter::GetTiledScoreOnAxis(
     out_tiling->xy[major_axis] = major_axis_count;
     out_tiling->xy[minor_axis] = minor_axis_count;
 
+    float tiling_weight = (out_tiling->x * out_tiling->y - 1.0) * config_.weight_tiling;
     Vec2f dims_rect_tiled(dims_rect.x * out_tiling->x, dims_rect.y * out_tiling->y);
-    return GetBasicScore(dims_surf, dims_rect_tiled);
+    return GetBasicScore(dims_surf, dims_rect_tiled) + tiling_weight;
 }
 
 // Calculates two tiling fits (one for each leading axis) and returns the best one.
@@ -89,7 +90,9 @@ void RectFitter::GetTiledScore(
     score_1 = GetTiledScoreOnAxis(dims_surf, dims_rect, major_axis, true, use_minor_axis, &tiling_1);
     score_2 = GetTiledScoreOnAxis(dims_surf, dims_rect, 1 - major_axis, use_minor_axis, true, &tiling_2);
 
-    *out_tiling = score_2 > score_1 ? tiling_2 : tiling_1;
+    bool t2 = score_2 > score_1;
+    *out_score = t2 ? score_2 : score_1;
+    *out_tiling = t2 ? tiling_2 : tiling_1;
 }
 
 // Uses tiling (when applicable) to calculate a best-case score for the provided rect.

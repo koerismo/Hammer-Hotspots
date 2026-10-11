@@ -10,33 +10,26 @@ namespace HotSpot {
 const float kFloatInf = std::numeric_limits<float>::infinity();
 const float kFloatEpsilon = std::numeric_limits<float>::epsilon();
 
-union Vec2i {
-    Vec2i() : x(0), y(0) {};
-    template<typename T> requires(std::is_arithmetic_v<T>)
-    Vec2i(T x, T y) : x(x), y(y) {};
+template<typename T> requires(std::is_arithmetic_v<T>)
+union Vec2 {
+    Vec2() : x(0), y(0) {};
+    Vec2(T x, T y) : x(x), y(y) {};
 
-    Vec2i Swapped() const { return Vec2i(y, x); }
-
-    uint16_t xy[2];
-    struct { uint16_t x, y; };
-};
-
-union Vec2f {
-    Vec2f() : x(0), y(0) {};
-    template<typename T> requires(std::is_arithmetic_v<T>)
-    Vec2f(T x, T y) : x(x), y(y) {};
-
-    inline Vec2f Swapped() const { return Vec2f(y, x); }
-    inline float Dot(Vec2f &alt) { return x * alt.x + y * alt.y; }
-    inline Vec2f Normalized(float* p_length) const {
-        double length = std::hypot(x, y);
+    Vec2<T> Swapped() const { return Vec2<T>(y, x); }
+    inline float Dot(Vec2<T> &alt) { return x * alt.x + y * alt.y; }
+    inline Vec2<double> Normalized(float* p_length) const {
+        const double fx = x, fy = y;
+        double length = std::hypot(fx, fy);
         if (p_length != nullptr) *p_length = length;
-        return Vec2f(x / length, y / length);
+        return Vec2<double>(fx / length, fy / length);
     }
 
-    double xy[2];
-    struct { double x, y; };
+    T xy[2];
+    struct { T x, y; };
 };
+
+using Vec2f = Vec2<double>;
+using Vec2i = Vec2<uint16_t>;
 
 // Defines a matrix with 2 columns and 3 rows,
 // stored as [column][row] coordinates.
