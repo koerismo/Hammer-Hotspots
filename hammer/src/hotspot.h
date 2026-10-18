@@ -170,6 +170,7 @@ public:
         Vec2i& tiling,
         double inset,
         int rotation,
+        Vec2f& scaling,
         Mat3x2& out_matrix);
 };
 

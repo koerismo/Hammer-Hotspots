@@ -200,37 +200,50 @@ void RectFitter::GetFinalTransform(
     Vec2i& tiling,
     double inset,
     int rotation,
+    Vec2f& scaling,
     Mat3x2& m
 ) {
     // Calculate bounds
-    const double scale_x = (rect.GetWidth() * tiling.x - inset * 2.0) / tex_size.x;
-    const double scale_y = (rect.GetHeight() * tiling.y - inset * 2.0) / tex_size.y;
+    const double size_x = (rect.GetWidth() * tiling.x - inset * 2.0) / tex_size.x;
+    const double size_y = (rect.GetHeight() * tiling.y - inset * 2.0) / tex_size.y;
     const double offset_x = rect.mins.x + inset;
     const double offset_y = rect.mins.y + inset;
 
-    // Create identity matrix
-    m.x[0] = 1;  m.x[1] = 0;
-    m.y[0] = 0;  m.y[1] = 1;
-    m.z[0] = 0;  m.z[1] = 0;
+    // Matrix X <--> X
+    m.x[0] = scaling.x;
+    m.x[1] = 0;
 
-    // Rotate
-    if (rotation == 2) {
-        m.x[0] = -1; m.y[1] = -1;
-        m.z[0] =  1; m.z[1] =  1;
-    } else if (rotation) {
+    // Matrix Y <--> Y
+    m.y[0] = 0;
+    m.y[1] = scaling.y;
+
+    // Matrix basis
+    m.z[0] = scaling.x * -0.5 + 0.5;
+    m.z[1] = scaling.y * -0.5 + 0.5;
+
+    // Rotate 90°
+    if (rotation & 1) {
         std::swap(m.x, m.y);
-        if (rotation > 0)  { m.x[1] = -1; m.z[1] = 1; }
-        else               { m.y[0] = -1; m.z[0] = 1; }
+        m.y[0] *= -1.0;
+        m.z[0] = 1.0 - m.z[0];
+    }
+
+    // Rotate 180°
+    if (rotation & 2) {
+        m.x[0] *= -1.0; m.x[1] *= -1.0;
+        m.y[0] *= -1.0; m.y[1] *= -1.0;
+        m.z[0] = 1.0 - m.z[0];
+        m.z[1] = 1.0 - m.z[1];
     }
 
     // Scale
-    m.x[0] *= scale_x;
-    m.y[0] *= scale_x;
-    m.z[0] *= scale_x;
+    m.x[0] *= size_x;
+    m.y[0] *= size_x;
+    m.z[0] *= size_x;
 
-    m.x[1] *= scale_y;
-    m.y[1] *= scale_y;
-    m.z[1] *= scale_y;
+    m.x[1] *= size_y;
+    m.y[1] *= size_y;
+    m.z[1] *= size_y;
 
     // Translate
     m.z[0] += offset_x;
